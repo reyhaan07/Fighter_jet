@@ -1,0 +1,23 @@
+// Heavy 30 mm autocannon: slow, hard-hitting explosive shells.
+export default {
+  id: 'cannon30',
+  name: 'GAU-30 Heavy Autocannon',
+  short: '30MM',
+  slot: 'gun',
+  class: 'GunWeapon',
+  category: 'gun',
+  price: 2500,
+  description: 'Heavy autocannon firing high-explosive shells. Slow, but each hit hurts and shells burst on impact. Great against ground targets.',
+  rpm: 720,
+  speed: 900,
+  range: 2000,
+  damage: 14,
+  splash: 6,
+  spread: 0.003,
+  ammo: 300,
+  style: 1,
+  recoil: 0.08,
+  muzzleSize: 2,
+  sound: 'gun30',
+  muzzle: [0.95, 0.15, -5.4],
+};

@@ -5,6 +5,7 @@ import { Renderer } from '../world/Renderer.js';
 import { PRESETS, detectPreset } from '../config/quality.js';
 import { loadSettings } from './Settings.js';
 import { Session } from './Session.js';
+import { Hud } from '../ui/Hud.js';
 
 // Application shell: owns the renderer, input, save data and the main loop,
 // and swaps Sessions (levels) in and out.
@@ -21,6 +22,7 @@ export class Game {
     this.renderer = new Renderer(canvas);
     this.input = new Input(canvas, this.settings.bindings);
     this.session = null;
+    this.hud = new Hud(hudCanvas, this.settings);
     this.loop = new Loop({
       onStep: (dt) => this.session?.step(dt),
       onRender: (dt, alpha) => this.session?.render(dt, alpha),
@@ -38,7 +40,12 @@ export class Game {
     return q;
   }
 
+  async restartSession() {
+    if (this.lastMission) await this.startSession(this.lastMission);
+  }
+
   async startSession(mission) {
+    this.lastMission = mission;
     this.endSession();
     this.session = new Session(this, mission);
     await this.session.build();

@@ -1,0 +1,25 @@
+// 20 mm rotary cannon: high rate of fire, bright tracers, overheats instead of
+// running dry quickly.
+export default {
+  id: 'cannon20',
+  name: 'M61 20mm Rotary Cannon',
+  short: '20MM',
+  slot: 'gun',
+  class: 'GunWeapon',
+  category: 'gun',
+  price: 0,
+  description: 'Six-barrel rotary cannon. Huge rate of fire with tracer rounds. Overheats if you hold the trigger too long.',
+  rpm: 3600,
+  spinUp: 0.35,
+  speed: 1050,
+  range: 1700,
+  damage: 3.2,
+  spread: 0.0045,
+  ammo: 2400,
+  heatPerShot: 0.0085,
+  coolRate: 0.32,
+  overheatTime: 2.2,
+  style: 0,
+  sound: 'gun20',
+  muzzle: [0.95, 0.25, -5.4],
+};

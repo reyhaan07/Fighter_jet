@@ -1,0 +1,21 @@
+// Gun used by AI fighters and wingmen (not selectable in the hangar).
+export default {
+  id: 'enemyGun',
+  name: 'Fighter Cannon',
+  short: 'GUN',
+  slot: 'gun',
+  class: 'GunWeapon',
+  category: 'gun',
+  hidden: true,
+  rpm: 1200,
+  speed: 950,
+  range: 1400,
+  damage: 1.6,
+  spread: 0.01,
+  ammo: 99999,
+  style: 3,
+  styleAlly: 5,
+  sound: 'gunEnemy',
+  muzzle: [0.9, 0.2, -5.4],
+  alternate: true,
+};
