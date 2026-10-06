@@ -92,7 +92,8 @@ export function think(air, nAir, mis, nMis, out, misOut, time, dt, mapHalf) {
     const r = i * O_STRIDE;
     out[r] = air[o + A.ID];
     const role = air[o + A.ROLE];
-    if (role === ROLE.PLAYER || !(air[o + A.FLAGS] & FLAG.ALIVE)) {
+    // The player and helicopters (own hover AI) are only listed as targets.
+    if (role === ROLE.PLAYER || role === ROLE.HELI || !(air[o + A.FLAGS] & FLAG.ALIVE)) {
       out[r + 5] = 0;
       continue;
     }

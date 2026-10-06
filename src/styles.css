@@ -48,7 +48,7 @@ canvas#hud { pointer-events: none; }
 #perf {
   position: fixed;
   left: 8px;
-  top: 8px;
+  top: 128px;
   padding: 6px 9px;
   font: 11px/1.45 var(--font-mono);
   color: #cfe;

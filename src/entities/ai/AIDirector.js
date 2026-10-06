@@ -179,7 +179,7 @@ export class AIDirector {
     let n = 0;
     for (let i = 0; i < list.length && n < MAX_AIR; i++) {
       const u = list[i];
-      if (!u.alive || u.role === 'heli') continue;
+      if (!u.alive) continue;
       const o = n * A_STRIDE;
       const c = u.controller instanceof AIController ? u.controller : null;
       u._aiIndex = n;
@@ -187,7 +187,7 @@ export class AIDirector {
       this.airUnits[n] = u;
       a[o + A.ID] = u.id;
       a[o + A.TEAM] = u.team;
-      a[o + A.ROLE] = u.isPlayer ? ROLE.PLAYER : u.isWingman ? ROLE.WINGMAN : u.aiRole ?? ROLE.FIGHTER;
+      a[o + A.ROLE] = u.isPlayer ? ROLE.PLAYER : u.role === 'heli' ? ROLE.HELI : u.isWingman ? ROLE.WINGMAN : u.aiRole ?? ROLE.FIGHTER;
       a[o + A.SKILL] = c ? c.skill : 1;
       a[o + A.PX] = u.pos.x;
       a[o + A.PX + 1] = u.pos.y;
