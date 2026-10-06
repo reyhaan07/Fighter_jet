@@ -230,6 +230,54 @@ export class Session {
     if (owner === this.player) this.game.renderer.setEffects(0, 0.8);
   }
 
+  /** Terrain point under the aim (laser designator / CCIP). Reused vector. */
+  groundAim() {
+    const p = this.player;
+    const dir = this.controller.usingMouseAim ? this.controller.aimDir : _d.set(0, 0, -1).applyQuaternion(p.quat);
+    const out = (this._aim ||= new THREE.Vector3());
+    let prev = 0;
+    for (let t = 60; t < 16000; t += 60) {
+      out.copy(p.pos).addScaledVector(dir, t);
+      if (out.y <= this.world.surfaceAt(out.x, out.z)) {
+        let a = prev;
+        let b = t;
+        for (let i = 0; i < 8; i++) {
+          const m = (a + b) / 2;
+          out.copy(p.pos).addScaledVector(dir, m);
+          if (out.y <= this.world.surfaceAt(out.x, out.z)) b = m;
+          else a = m;
+        }
+        out.copy(p.pos).addScaledVector(dir, b);
+        return out;
+      }
+      prev = t;
+    }
+    return null;
+  }
+
+  /** Continuously computed impact point of a free-fall bomb (reused vector). */
+  bombImpact() {
+    const p = this.player;
+    const out = (this._ccip ||= new THREE.Vector3());
+    const v = (this._ccipV ||= new THREE.Vector3());
+    out.copy(p.pos);
+    v.copy(p.vel);
+    for (let i = 0; i < 400; i++) {
+      v.y -= 9.81 * 0.1;
+      v.multiplyScalar(1 - 0.002);
+      out.addScaledVector(v, 0.1);
+      if (out.y <= this.world.surfaceAt(out.x, out.z)) return out;
+    }
+    return null;
+  }
+
+  spawnBomberTurrets(u, def) {
+    for (const off of def.turrets) {
+      _v.set(off[0], off[1], off[2]);
+      this.entities.spawnGround('bomberTurret', u.team, u.pos.x, u.pos.z, 0, { parent: u, offset: _v, y: u.pos.y });
+    }
+  }
+
   onCruiseEnd() {
     this.cameraRig.killTimer = 0;
   }

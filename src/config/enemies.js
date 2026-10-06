@@ -83,5 +83,5 @@ export const UNITS = {
   fortressEngine: { name: 'Fortress Engine', kind: 'part', role: 'part', model: 'fortressEngine', paint: 0x55595f, hp: 260, radius: 10, score: 800, credits: 300, explosion: 30 },
   fortressTurret: { name: 'Fortress Turret', kind: 'part', role: 'aa', model: 'turret', paint: 0x55595f, hp: 90, radius: 5, score: 250, credits: 80, range: 3000, explosion: 12 },
   fortressCore: { name: 'Reactor Core', kind: 'part', role: 'part', model: 'fortressCore', paint: 0xffffff, hp: 900, radius: 8, score: 5000, credits: 2000, explosion: 70 },
-  bomberTurret: { name: 'Gunner', kind: 'part', role: 'aa', model: null, hp: 9999, radius: 2, isTarget: false, range: 1600, score: 0, credits: 0 },
+  bomberTurret: { name: 'Gunner', kind: 'part', role: 'aa', model: null, hp: 9999, radius: 2, isTarget: false, ghost: true, tracerOnly: true, range: 1600, score: 0, credits: 0 },
 };

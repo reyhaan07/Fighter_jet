@@ -281,6 +281,7 @@ export class Ordnance {
     }
 
     // Steering.
+    if (kind === 'bomb' || kind === 'bomblet') o.quat.setFromUnitVectors(FWD, _v.copy(o.vel).normalize());
     if (o.steer && o.player) {
       // Player-steered cruise missile: guideDir is written by the Session.
       this._turn(o, o.guideDir, def.turnRate * dt);
@@ -305,7 +306,13 @@ export class Ordnance {
       }
     }
     if (kind === 'bomb' || kind === 'bomblet') {
-      o.quat.setFromUnitVectors(FWD, _v.copy(o.vel).normalize());
+      // Bombs point along their velocity; guided bombs steer that velocity.
+      const sp = o.vel.length();
+      if (o.guided && o.trackValid && o.hasGuide) {
+        _v.set(0, 0, -1).applyQuaternion(o.quat);
+        o.vel.copy(_v).multiplyScalar(sp);
+      }
+      o.quat.setFromUnitVectors(FWD, _v.copy(o.vel).divideScalar(Math.max(sp, 1e-3)));
     } else {
       _v.set(0, 0, -1).applyQuaternion(o.quat);
       o.vel.copy(_v).multiplyScalar(o.speed);

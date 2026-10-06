@@ -170,7 +170,7 @@ export class EntityManager {
     let enemies = 0;
     for (let i = 0; i < list.length; i++) {
       const u = list[i];
-      if (!u.alive) continue;
+      if (!u.alive || u.ghost) continue;
       h.insert(u);
       if (u.team === TEAM.ENEMY && u.isTarget) enemies++;
     }

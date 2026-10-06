@@ -66,6 +66,7 @@ export class Unit {
     this.objective = null;
     this.isTarget = def.isTarget ?? true;
     this.signature = def.signature ?? 1;
+    this.ghost = !!def.ghost; // not collidable (e.g. bomber gunners)
     this.renderKey = def.model;
     this.pos.set(x, y, z);
     this.prevPos.copy(this.pos);

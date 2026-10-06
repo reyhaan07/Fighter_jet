@@ -11,6 +11,7 @@ import { clamp } from '../core/math.js';
 
 const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
+const _lead = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 
@@ -19,6 +20,7 @@ export class PlayerController {
     this.input = input;
     this.settings = settings;
     this.aimDir = new THREE.Vector3(0, 0, -1);
+    this._aim = new THREE.Vector3();
     this.manual = 0; // >0 while keyboard/stick flying overrides mouse aim
     this.mouseAim = settings.mouseAim;
     this.autoLevel = settings.autoLevel;
@@ -110,11 +112,22 @@ export class PlayerController {
     t.defense = inp.pressed('defense');
     t.flares = inp.down('flares');
 
-    // Guns gimbal a few degrees toward the aim point (arcade assist).
+    // Guns gimbal a few degrees toward the aim point (arcade assist). If the
+    // selected air target's lead point is close to the aim, the guns aim there.
     _fwd.set(0, 0, -1).applyQuaternion(u.quat);
-    const cos = _fwd.dot(this.aimDir);
+    const aim = this._aim.copy(this.aimDir);
+    const tg = u.target;
+    if (tg && tg.alive && tg.isAir && u.loadout?.gun?.def.speed) {
+      const dist = tg.pos.distanceTo(u.pos);
+      if (dist < 2000) {
+        const tt = dist / u.loadout.gun.def.speed;
+        _lead.copy(tg.pos).addScaledVector(tg.vel, tt).addScaledVector(u.vel, -tt).sub(u.pos).normalize();
+        if (_lead.dot(aim) > Math.cos(0.09)) aim.copy(_lead);
+      }
+    }
+    const cos = _fwd.dot(aim);
     const gimbal = 0.07;
-    if (cos > Math.cos(gimbal)) u.gunDir.copy(this.aimDir);
-    else u.gunDir.copy(_fwd).lerp(this.aimDir, Math.min(1, gimbal / Math.acos(clamp(cos, -1, 1)))).normalize();
+    if (cos > Math.cos(gimbal)) u.gunDir.copy(aim);
+    else u.gunDir.copy(_fwd).lerp(aim, Math.min(1, gimbal / Math.acos(clamp(cos, -1, 1)))).normalize();
   }
 }

@@ -249,7 +249,7 @@ export class Hud {
     const g = this.g;
     const p = s.player;
     const k = this.ui;
-    const sp = { x: 0, y: 0, z: 0, behind: false };
+    const sp = this._sp2 || (this._sp2 = { x: 0, y: 0, z: 0, behind: false });
     // Flight path marker (where the jet is actually going).
     const vl = p.vel.length() || 1;
     this.project(cam, p.renderPos.x + (p.vel.x / vl) * 1000, p.renderPos.y + (p.vel.y / vl) * 1000, p.renderPos.z + (p.vel.z / vl) * 1000, sp);
@@ -290,6 +290,26 @@ export class Hud {
         g.arc(gx, gy, 18 * k, Math.PI * 0.75, Math.PI * 0.75 + Math.PI * 1.5 * gun.heat);
         g.stroke();
         g.lineWidth = 1.5;
+      }
+    }
+    // Bombs: CCIP pipper / laser designator.
+    const cur = p.loadout?.current;
+    if (cur && cur.def.class === 'BombWeapon') {
+      const laser = cur.def.guidance === 'laser';
+      const pt = laser ? (p.target && !p.target.isAir && p.target.alive ? p.target.pos : s.groundAim()) : s.bombImpact();
+      if (pt) {
+        this.project(cam, pt.x, pt.y, pt.z, sp);
+        if (!sp.behind) {
+          g.strokeStyle = laser ? COL.danger : COL.warn;
+          g.beginPath();
+          g.arc(sp.x, sp.y, 12 * k, 0, Math.PI * 2);
+          g.moveTo(sp.x - 20 * k, sp.y);
+          g.lineTo(sp.x - 12 * k, sp.y);
+          g.moveTo(sp.x + 12 * k, sp.y);
+          g.lineTo(sp.x + 20 * k, sp.y);
+          g.stroke();
+          this.text(laser ? 'LASER' : 'CCIP', sp.x, sp.y + 28 * k, 10 * k, laser ? COL.danger : COL.warn, 'center');
+        }
       }
     }
     // Mouse-aim circle.
