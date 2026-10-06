@@ -6,7 +6,8 @@
 //   Gamepad   'Pad:B<n>' button n, 'Pad:A<n>+' / 'Pad:A<n>-' axis n direction
 //             (standard mapping: A0/A1 left stick, A2/A3 right stick, B6/B7 triggers)
 //
-// Flying: arrow keys pitch and roll, W/S throttle, A/D rudder, the mouse aims.
+// Flying: arrow keys pitch and roll, W/S or the mouse wheel throttle, A/D rudder,
+// the mouse aims.
 // Left mouse fires the gun, right mouse fires the selected missile/weapon.
 
 export const ACTIONS = [
@@ -52,16 +53,16 @@ export const DEFAULT_BINDINGS = {
   rollRight: ['ArrowRight', 'Pad:A0+'],
   yawLeft: ['KeyA', 'Pad:B4'],
   yawRight: ['KeyD', 'Pad:B5'],
-  throttleUp: ['KeyW', 'Pad:B7'],
-  throttleDown: ['KeyS', 'Pad:B6'],
+  throttleUp: ['KeyW', 'WheelUp', 'Pad:B7'],
+  throttleDown: ['KeyS', 'WheelDown', 'Pad:B6'],
   afterburner: ['ShiftLeft', 'ShiftRight', 'Pad:B10'],
   airbrake: ['KeyB', 'Pad:B11'],
   autoLevel: ['KeyL'],
   mouseAim: ['KeyM'],
   fireGun: ['Mouse0', 'Space', 'Pad:B0'],
   fireSecondary: ['Mouse2', 'KeyF', 'Pad:B1'],
-  nextWeapon: ['KeyR', 'WheelDown', 'Pad:B3'],
-  prevWeapon: ['WheelUp'],
+  nextWeapon: ['KeyR', 'Pad:B3'],
+  prevWeapon: ['KeyQ'],
   slot1: ['Digit1'],
   slot2: ['Digit2'],
   slot3: ['Digit3'],

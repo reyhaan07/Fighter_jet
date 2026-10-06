@@ -64,6 +64,7 @@ export class Session {
     game.renderer.configure(q, scene, this.camera);
     const env = mission.env || {};
     this.world = new World(game.renderer.renderer, scene, q, env);
+    game.renderer.renderer.toneMappingExposure = this.world.baseExposure * (game.settings.brightness ?? 1);
     this.mapHalf = (env.mapSize || 32000) / 2;
 
     this.hash = new SpatialHash({ cellSize: 250, buckets: 4096, capacity: 2048, largeRadius: 100 });

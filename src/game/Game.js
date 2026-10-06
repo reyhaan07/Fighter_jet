@@ -115,6 +115,7 @@ export class Game {
       if (this.session) this.renderer.configure(this.quality, this.session.scene, this.session.camera);
       else this.hangar?.activate();
     }
+    if (this.session?.world) this.renderer.renderer.toneMappingExposure = this.session.world.baseExposure * s.brightness;
     if (this.session?.controller) {
       this.session.controller.mouseAim = s.mouseAim;
       this.session.controller.autoLevel = s.autoLevel;

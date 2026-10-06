@@ -15,6 +15,8 @@ export class Input {
     for (const [id] of ACTIONS) if (!this.bindings[id]) this.bindings[id] = [];
     this.keys = new Set();
     this.pending = []; // codes pressed since the last simulation step (reused array)
+    this.wheelNotches = 0; // net mouse-wheel notches not yet consumed (+ = up)
+    this._wheelAcc = 0; // touchpad scroll distance below one notch
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.mouseX = 0; // normalised -1..1 position (fallback when no pointer lock)
@@ -80,7 +82,16 @@ export class Input {
         this._finishCapture(code);
         return;
       }
-      if (e.target === this.canvas) this._pulse(code);
+      if (e.target !== this.canvas) return;
+      this._pulse(code);
+      // Count notches from the scroll distance so a mouse wheel click is one
+      // notch and a laptop touchpad swipe moves smoothly instead of jumping.
+      const px = -e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 600 : 1);
+      this._wheelAcc += px;
+      let n = Math.trunc(this._wheelAcc / 100);
+      if (!n && Math.abs(px) >= 50) n = Math.sign(px); // one physical wheel click
+      if (n) this._wheelAcc = 0;
+      this.wheelNotches += n;
     };
     this._onContext = (e) => e.preventDefault();
     this._onLockChange = () => {
@@ -216,7 +227,7 @@ export class Input {
   flush() {
     this.pending.length = 0;
     this._stepPressed.clear();
-    this.mouseDX = this.mouseDY = 0;
+    this.mouseDX = this.mouseDY = this.wheelNotches = 0;
   }
 
   /** Raw key press check outside the binding system (F3 etc.). */
@@ -227,6 +238,13 @@ export class Input {
   /** Signed axis from two actions, e.g. axis('pitchDown','pitchUp'). */
   axis(neg, pos) {
     return this.value(pos) - this.value(neg);
+  }
+
+  /** Net wheel notches since the last call (+ = scrolled up). */
+  consumeWheel() {
+    const n = this.wheelNotches;
+    this.wheelNotches = 0;
+    return this.enabled ? n : 0;
   }
 
   consumeMouse() {

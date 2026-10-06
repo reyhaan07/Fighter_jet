@@ -20,7 +20,7 @@ export const SKY_PRESETS = {
     hemiSky: 0x9fb8d8,
     hemiGround: 0x4a4436,
     hemi: 1.1,
-    exposure: 0.85,
+    exposure: 0.74,
   },
   dusk: {
     zenith: [0.03, 0.06, 0.16],
@@ -35,7 +35,7 @@ export const SKY_PRESETS = {
     hemiSky: 0x9a8aa8,
     hemiGround: 0x3a3028,
     hemi: 1.2,
-    exposure: 0.95,
+    exposure: 0.83,
   },
   night: {
     zenith: [0.002, 0.004, 0.012],
@@ -50,7 +50,7 @@ export const SKY_PRESETS = {
     hemiSky: 0x40547a,
     hemiGround: 0x101318,
     hemi: 0.55,
-    exposure: 1.25,
+    exposure: 1.1,
   },
 };
 

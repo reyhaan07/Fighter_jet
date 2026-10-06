@@ -86,7 +86,7 @@ export class GunWeapon extends Weapon {
     const s = Math.sqrt(Math.random()) * d.spread * (o.spreadMult || 1);
     _d.addScaledVector(_r, Math.cos(a) * s).addScaledVector(_u, Math.sin(a) * s).normalize();
     const v = d.speed;
-    const style = o.team === 0 ? (o.isPlayer ? d.style : d.styleAlly ?? 5) : (d.styleEnemy ?? d.style);
+    const style = o.team === 0 ? (o.isPlayer ? d.style : d.styleAlly ?? 5) : (d.styleEnemy ?? (d.style <= 1 ? 3 : d.style));
     ctx.bullets.spawn(
       _p.x, _p.y, _p.z,
       _d.x * v + o.vel.x, _d.y * v + o.vel.y, _d.z * v + o.vel.z,

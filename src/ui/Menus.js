@@ -266,6 +266,7 @@ export class Menus {
           ${PRESET_ORDER.map((q) => `<button data-act="quality" data-id="${q}" class="${st.quality === q ? 'on' : ''}">${PRESETS[q].label}</button>`).join('')}
         </div></div>
         <p class="muted small">Detected GPU: ${esc(det.gpu)}. Presets change resolution scale, shadows, bloom, particle counts, terrain detail and view distance. Terrain and view distance apply from the next mission.</p>
+        ${range('brightness', 'Brightness', 0.6, 1.4, 0.05, (v) => Math.round(v * 100) + '%')}
         ${range('renderScale', 'Render scale (0 = preset)', 0, 1, 0.05, (v) => (+v ? Math.round(v * 100) + '%' : 'preset'))}
         ${toggle('adaptive', 'Adaptive resolution (lower scale when FPS drops)')}
         <div class="row"><label>Frame cap</label><div class="seg">${[30, 60, 90, 120, 0].map((f) => `<button data-act="fpsCap" data-id="${f}" class="${+st.targetFps === f ? 'on' : ''}">${f || 'Off'}</button>`).join('')}</div></div>
@@ -706,7 +707,7 @@ export class Menus {
     const st = this.game.settings;
     st[key] = el.type === 'range' ? +el.value : el.value;
     const out = el.parentElement.querySelector('output');
-    if (out) out.textContent = el.type === 'range' ? (key.includes('Volume') ? Math.round(el.value * 100) + '%' : key === 'renderScale' ? (+el.value ? Math.round(el.value * 100) + '%' : 'preset') : (+el.value).toFixed(2)) : el.value;
+    if (out) out.textContent = el.type === 'range' ? (key.includes('Volume') || key === 'brightness' ? Math.round(el.value * 100) + '%' : key === 'renderScale' ? (+el.value ? Math.round(el.value * 100) + '%' : 'preset') : (+el.value).toFixed(2)) : el.value;
     this.game.applySettings();
   }
 }

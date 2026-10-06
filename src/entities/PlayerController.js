@@ -23,11 +23,13 @@ export class PlayerController {
     this._aim = new THREE.Vector3();
     this.manual = 0; // >0 while keyboard/stick flying overrides mouse aim
     this.mouseAim = settings.mouseAim;
+    this.abDetent = false; // afterburner engaged via the throttle detent (mouse wheel)
     this.autoLevel = settings.autoLevel;
   }
 
   reset(u) {
     this.aimDir.set(0, 0, -1).applyQuaternion(u.quat);
+    this.abDetent = false;
     this.manual = 0;
   }
 
@@ -95,9 +97,26 @@ export class PlayerController {
     }
 
     // Throttle: W/S (or triggers) move the setting; afterburner past 100 %.
+    // Mouse wheel: 5 % per notch; one notch past 100 % engages the afterburner
+    // detent, a notch down drops back out of it, like a real throttle quadrant.
     const thr = inp.axis('throttleDown', 'throttleUp');
+    const b = inp.bindings;
+    const wheel = inp.consumeWheel();
+    let notches = 0;
+    if (wheel > 0 && b.throttleUp.includes('WheelUp')) notches = wheel;
+    else if (wheel < 0 && b.throttleDown.includes('WheelDown')) notches = wheel;
+    for (; notches > 0; notches--) {
+      if (f.throttleTarget >= 0.999) this.abDetent = true;
+      f.throttleTarget = Math.min(1, Math.round(f.throttleTarget * 20 + 1) / 20);
+    }
+    for (; notches < 0; notches++) {
+      if (this.abDetent) this.abDetent = false;
+      else f.throttleTarget = Math.max(0, Math.round(f.throttleTarget * 20 - 1) / 20);
+    }
     f.throttleTarget = clamp(f.throttleTarget + thr * dt * 0.7, 0, 1);
-    c.ab = inp.down('afterburner') || (f.throttleTarget >= 1 && inp.value('throttleUp') > 0.5 && inp.lastDevice === 'gamepad');
+    if (thr < 0) this.abDetent = false;
+    if (f.throttleTarget < 1) this.abDetent = false;
+    c.ab = this.abDetent || inp.down('afterburner') || (f.throttleTarget >= 1 && inp.value('throttleUp') > 0.5 && inp.lastDevice === 'gamepad');
     c.brake = inp.down('airbrake');
 
     // Weapon triggers.

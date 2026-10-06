@@ -55,13 +55,13 @@ Every binding can be changed in **Settings → Controls**: click a binding and p
 | Pitch up / down | **↑ / ↓** |
 | Roll left / right | **← / →** |
 | Rudder (yaw) | **A / D** |
-| Throttle up / down | **W / S** |
-| Afterburner (hold) | **Shift** |
+| Throttle up / down | **Mouse wheel** (5 % per notch) / **W / S** |
+| Afterburner | Scroll up once more at 100 % (scroll down to cancel), or hold **Shift** |
 | Airbrake (hold) | **B** |
 | Aim | **Mouse** (in mouse-aim mode the jet flies toward the aim circle) |
 | Fire gun | **Left mouse** / Space |
 | Fire selected weapon | **Right mouse** / F |
-| Next / previous weapon | R / mouse wheel, or **1 2 3** to pick a slot |
+| Next / previous weapon | **R / Q**, or **1 2 3** to pick a slot |
 | Next target | T / middle mouse |
 | Flares | **X** |
 | Defence system (chaff / ECM / shield) | **V** |

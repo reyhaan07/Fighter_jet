@@ -6,13 +6,15 @@ import { segmentPointDist2, segmentSegmentDist2 } from '../../core/math.js';
 // never tunnel through targets. Rendered as one instanced tracer batch.
 
 export const BULLET_STYLES = [
-  // r, g, b, width, length(m), glow
-  [4.0, 3.0, 1.2, 0.35, 26, 0], // 0: 20mm tracer
-  [4.5, 2.2, 0.6, 0.6, 30, 0], // 1: 30mm
-  [1.2, 2.4, 6.0, 2.2, 14, 6], // 2: plasma
-  [5.0, 1.0, 0.6, 0.45, 26, 0], // 3: enemy cannon (red)
-  [4.0, 1.8, 0.8, 0.6, 22, 0], // 4: AA tracer
-  [2.4, 4.5, 2.0, 0.4, 20, 0], // 5: wingman (green)
+  // r, g, b, width, length(m), glow, min screen width
+  // The player's rounds are bright red with a glowing head and stay a few
+  // pixels wide at any range, so you can always see where your fire goes.
+  [5.0, 0.45, 0.22, 0.6, 36, 1.4, 0.0032], // 0: player 20mm (red)
+  [5.0, 1.0, 0.3, 0.85, 38, 2.0, 0.0036], // 1: player 30mm (red-orange)
+  [1.2, 2.4, 6.0, 2.2, 14, 6, 0.0016], // 2: plasma
+  [1.8, 4.6, 1.1, 0.45, 26, 0, 0.0016], // 3: enemy cannon (green)
+  [4.0, 2.4, 0.8, 0.6, 22, 0, 0.0016], // 4: AA tracer (amber)
+  [1.6, 3.0, 5.5, 0.4, 20, 0, 0.0016], // 5: wingman (blue)
 ];
 
 // Query context reused for every bullet (no closures allocated per step).
@@ -195,7 +197,7 @@ export class Bullets {
       const sp = Math.max(1, Math.sqrt(vx * vx + vy * vy + vz * vz));
       // Tracer tail never extends back past the muzzle.
       const inv = Math.min(s[4], sp * (this.age[i] + alpha / 60) * 0.9) / sp;
-      beams.add(x - vx * inv, y - vy * inv, z - vz * inv, x, y, z, s[3], 0.0016, s[0], s[1], s[2], 1);
+      beams.add(x - vx * inv, y - vy * inv, z - vz * inv, x, y, z, s[3], s[6], s[0], s[1], s[2], 1);
       if (s[5]) glows.add(x, y, z, s[5], s[0] * 0.6, s[1] * 0.6, s[2] * 0.6, 1);
     }
   }

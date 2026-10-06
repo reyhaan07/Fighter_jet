@@ -23,6 +23,7 @@ export class World {
     const p = this.sky.preset;
     scene.add(this.sky.mesh);
     scene.fog = new THREE.FogExp2(this.sky.uniforms.uHorizon.value.clone(), this.fogDensity);
+    this.baseExposure = p.exposure;
     renderer.toneMappingExposure = p.exposure;
     const time0 = env.time || 'day';
     ATMO.set(this.sky.uniforms.uSunDir.value, new THREE.Color().setRGB(...p.sunColor).multiplyScalar(p.sunStrength * 0.4), time0 === 'dusk' ? 0.9 : time0 === 'night' ? 0.25 : 0.5);
