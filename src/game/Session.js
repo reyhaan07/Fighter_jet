@@ -330,6 +330,16 @@ export class Session {
       if (input.pressed('fireSecondary') && cm.age > 0.5) this.ordnance.detonate(cm, null);
     }
 
+    // Vapour cone around the fuselage near the sound barrier.
+    const mach = p.flight.speed / 340;
+    if (p.alive && mach > 0.94 && mach < 1.06 && this.contrails) {
+      const fwd = p.forward;
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2;
+        _v.set(Math.cos(a) * 2.6, Math.sin(a) * 1.8, -1.5).applyQuaternion(p.quat).add(p.pos);
+        this.fx.vapor(_v.x, _v.y, _v.z, p.vel.x - fwd.x * 30, p.vel.y - fwd.y * 30, p.vel.z - fwd.z * 30);
+      }
+    }
     // Wingtip vapour when pulling hard.
     if (p.alive && p.flight.gForce > 5.5 && (this._vapor = !this._vapor)) {
       for (const tip of this.anchors.wingtips) {

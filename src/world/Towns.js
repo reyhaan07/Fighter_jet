@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { rng } from '../core/math.js';
+import { ATMO, ATMO_GLSL } from './Atmosphere.js';
 
 // Towns and cities: thousands of instanced buildings in one draw call.
 // Facades get procedural window grids in the shader; at dusk and night a
@@ -11,12 +12,14 @@ const STRIDE = 8; // x, y, z, rotY, w, h, d, seed
 const vertexShader = /* glsl */ `
   attribute vec4 aPos;   // x, y, z, rotY
   attribute vec4 aSize;  // w, h, d, seed
-  uniform float uFogDensity;
+  uniform float uFogDensity, uMapHalf;
+  uniform sampler2D uLightMap;
+  varying vec2 vLm;
   varying vec3 vLocal;
   varying vec3 vSize;
   varying vec3 vN;
   varying float vSeed;
-  varying float vFog;
+  varying vec3 vWorld;
   varying float vDist;
   void main() {
     vec3 p = position * aSize.xyz;     // unit box with its base at y = 0
@@ -29,19 +32,22 @@ const vertexShader = /* glsl */ `
     vSeed = aSize.w;
     vec4 mv = viewMatrix * vec4(w, 1.0);
     vDist = length(mv.xyz);
-    vFog = 1.0 - exp(-uFogDensity * uFogDensity * vDist * vDist);
+    vWorld = w;
+    vLm = texture2D(uLightMap, clamp((aPos.xz + uMapHalf) / (2.0 * uMapHalf), 0.0, 1.0)).rg;
     gl_Position = projectionMatrix * mv;
   }`;
 
 const fragmentShader = /* glsl */ `
   uniform vec3 uSunDir, uSunColor, uSky, uGround, uFogColor;
-  uniform float uSunStrength, uNight;
+  uniform float uSunStrength, uNight, uFogDensity;
   varying vec3 vLocal;
   varying vec3 vSize;
   varying vec3 vN;
   varying float vSeed;
-  varying float vFog;
+  varying vec3 vWorld;
   varying float vDist;
+  varying vec2 vLm;
+  ${ATMO_GLSL}
   float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   void main() {
     vec3 n = normalize(vN);
@@ -64,9 +70,9 @@ const fragmentShader = /* glsl */ `
       base *= 0.6; // roofs
     }
     float ndl = max(dot(n, uSunDir), 0.0);
-    vec3 amb = mix(uGround, uSky, n.y * 0.5 + 0.5) * 0.5;
-    vec3 col = base * (amb + uSunColor * uSunStrength * ndl * 1.5) + emissive;
-    col = mix(col, uFogColor, vFog * (1.0 - min(1.0, length(emissive)) * 0.6));
+    vec3 amb = mix(uGround, uSky, n.y * 0.5 + 0.5) * 0.5 * (0.5 + 0.5 * vLm.g);
+    vec3 col = base * (amb + uSunColor * uSunStrength * ndl * 1.5 * vLm.r) + emissive;
+    col = mix(atmoFog(col, uFogColor, uFogDensity, vWorld), col, min(1.0, length(emissive)) * 0.6);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -129,6 +135,9 @@ export class Towns {
         uSky: { value: hemi.color },
         uGround: { value: hemi.groundColor },
         uNight: { value: night },
+        ...ATMO.uniforms,
+        uLightMap: { value: terrain.lightMap },
+        uMapHalf: { value: terrain.half },
       },
       vertexShader,
       fragmentShader,

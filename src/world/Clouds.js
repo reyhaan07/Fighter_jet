@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ATMO, ATMO_GLSL } from './Atmosphere.js';
 
 // Cumulus clouds built from clusters of instanced billboards (grown from the
 // portfolio's CloudPuffs). Each puff knows its offset inside its cloud, which
@@ -43,7 +44,7 @@ function cloudTexture() {
 }
 
 export class Clouds {
-  constructor({ count, sky, fogDensity, base = 1900, thickness = 900, box = 16000, night = false }) {
+  constructor({ count, sky, fogDensity, base = 1900, thickness = 900, box = 16000, night = false, dusk = false }) {
     const quad = new THREE.PlaneGeometry(1, 1);
     const geo = new THREE.InstancedBufferGeometry();
     geo.index = quad.index;
@@ -86,9 +87,10 @@ export class Clouds {
         uSunStrength: sky.uniforms.uSunStrength,
         uHorizon: sky.uniforms.uHorizon,
         uZenith: sky.uniforms.uZenith,
-        uLit: { value: night ? new THREE.Color(0.06, 0.07, 0.09) : new THREE.Color(1.0, 0.98, 0.96) },
-        uShade: { value: night ? new THREE.Color(0.012, 0.015, 0.022) : new THREE.Color(0.42, 0.47, 0.56) },
+        uLit: { value: night ? new THREE.Color(0.06, 0.07, 0.09) : dusk ? new THREE.Color(1.0, 0.72, 0.52) : new THREE.Color(1.0, 0.98, 0.96) },
+        uShade: { value: night ? new THREE.Color(0.012, 0.015, 0.022) : dusk ? new THREE.Color(0.3, 0.26, 0.36) : new THREE.Color(0.42, 0.47, 0.56) },
         uFogDensity: { value: fogDensity },
+        ...ATMO.uniforms,
       },
       vertexShader: /* glsl */ `
         attribute vec3 aCenter;
@@ -98,11 +100,13 @@ export class Clouds {
         uniform vec3 uSunDir;
         varying vec2 vUv;
         varying float vSeed, vFade, vLight, vBack, vDist, vBase;
+        varying vec3 vWorld;
         void main() {
           vec3 c = aCenter;
           c.x += uTime * 5.0;
           c.xz = cameraPosition.xz + mod(c.xz - cameraPosition.xz + uBox * 0.5, uBox) - uBox * 0.5;
           vec3 wp = c + aLocal.xyz;
+          vWorld = wp;
           vec4 mv = viewMatrix * vec4(wp, 1.0);
           float dist = length(mv.xyz);
           vDist = dist;
@@ -127,6 +131,8 @@ export class Clouds {
         uniform vec3 uSunColor, uHorizon, uZenith, uShade, uLit;
         varying vec2 vUv;
         varying float vSeed, vFade, vLight, vBack, vDist, vBase;
+        varying vec3 vWorld;
+        ${ATMO_GLSL}
         void main() {
           vec2 uv = vUv;
           if (vSeed > 0.5) uv.x = 1.0 - uv.x;
@@ -140,8 +146,7 @@ export class Clouds {
           col *= mix(vec3(1.0), uSunColor * 1.15, 0.35);
           col += uZenith * 0.25;
           col += uSunColor * uSunStrength * vBack * (1.0 - shape) * shape * 2.0; // silver lining
-          float fog = 1.0 - exp(-uFogDensity * uFogDensity * vDist * vDist * 0.55);
-          col = mix(col, uHorizon, fog);
+          col = atmoFog(col, uHorizon, uFogDensity * 0.75, vWorld);
           gl_FragColor = vec4(col, a * 0.92);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>

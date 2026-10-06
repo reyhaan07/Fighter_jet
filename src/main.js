@@ -4,6 +4,9 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/600.css';
 import './styles.css';
 import { Game } from './game/Game.js';
+import { installAtmosphere } from './world/Atmosphere.js';
+
+installAtmosphere();
 
 // Entry point. Everything (code, fonts, sounds) is bundled locally: the game
 // never touches the network.

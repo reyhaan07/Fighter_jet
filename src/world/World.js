@@ -6,6 +6,7 @@ import { Clouds } from './Clouds.js';
 import { Forest } from './Forest.js';
 import { Towns } from './Towns.js';
 import { AirDust } from '../fx/AirDust.js';
+import { ATMO } from './Atmosphere.js';
 
 // Assembles the environment for one level: sky, lights, fog, reflections,
 // terrain, sea and clouds. Everything created here is disposed in dispose().
@@ -23,6 +24,9 @@ export class World {
     scene.add(this.sky.mesh);
     scene.fog = new THREE.FogExp2(this.sky.uniforms.uHorizon.value.clone(), this.fogDensity);
     renderer.toneMappingExposure = p.exposure;
+    const time0 = env.time || 'day';
+    ATMO.set(this.sky.uniforms.uSunDir.value, new THREE.Color().setRGB(...p.sunColor).multiplyScalar(p.sunStrength * 0.4), time0 === 'dusk' ? 0.9 : time0 === 'night' ? 0.25 : 0.5);
+    ATMO.uniforms.uAtmoH.value = env.terrain === 'mountains' ? 1800 : 2400;
 
     // Lights.
     this.hemi = new THREE.HemisphereLight(p.hemiSky, p.hemiGround, p.hemi);
@@ -59,6 +63,7 @@ export class World {
       seed: env.seed || 1,
       type: env.terrain || 'islands',
       flatZones: env.flatZones || [],
+      sunDir: this.sky.uniforms.uSunDir.value,
     });
     scene.add(this.terrain.mesh);
     this.water = new Water(this.sky, this.fogDensity, this.terrain);
@@ -78,6 +83,7 @@ export class World {
       fogDensity: this.fogDensity,
       base: env.cloudBase ?? 1900,
       night: env.time === 'night',
+      dusk: env.time === 'dusk',
     });
     scene.add(this.clouds.mesh);
   }

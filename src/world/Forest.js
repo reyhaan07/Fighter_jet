@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rng } from '../core/math.js';
+import { ATMO, ATMO_GLSL } from './Atmosphere.js';
 
 // Instanced forests. Tree positions are generated once per level into
 // 1 km chunks; only chunks within the quality's radius of the camera are
@@ -70,11 +71,13 @@ const vertexShader = /* glsl */ `
   attribute vec4 aTree;  // x, y, z, scale
   attribute float aSeed;
   attribute vec3 color;
-  uniform float uTime, uRadius, uFogDensity;
+  uniform float uTime, uRadius, uFogDensity, uMapHalf;
   uniform vec3 uSunDir;
+  uniform sampler2D uLightMap;
+  varying vec2 vLm;
   varying vec3 vColor;
   varying vec3 vN;
-  varying float vFog;
+  varying vec3 vWorld;
   varying float vH;
   void main() {
     float a = aSeed * 6.2831;
@@ -93,25 +96,27 @@ const vertexShader = /* glsl */ `
     vN = n;
     vH = position.y / 16.0;
     vColor = color * (0.8 + 0.45 * fract(aSeed * 13.7));
+    vWorld = w;
+    vLm = texture2D(uLightMap, clamp((aTree.xz + uMapHalf) / (2.0 * uMapHalf), 0.0, 1.0)).rg;
     vec4 mv = viewMatrix * vec4(w, 1.0);
-    float d = length(mv.xyz);
-    vFog = 1.0 - exp(-uFogDensity * uFogDensity * d * d);
     gl_Position = projectionMatrix * mv;
   }`;
 
 const fragmentShader = /* glsl */ `
   uniform vec3 uSunDir, uSunColor, uSky, uGround, uFogColor;
-  uniform float uSunStrength;
+  uniform float uSunStrength, uFogDensity;
   varying vec3 vColor;
   varying vec3 vN;
-  varying float vFog;
+  varying vec3 vWorld;
   varying float vH;
+  varying vec2 vLm;
+  ${ATMO_GLSL}
   void main() {
     vec3 n = normalize(vN);
     float ndl = max(dot(n, uSunDir), 0.0);
-    vec3 amb = mix(uGround, uSky, n.y * 0.5 + 0.5) * 0.55;
-    vec3 col = vColor * (amb + uSunColor * uSunStrength * ndl * 1.6) * (0.65 + 0.35 * vH);
-    col = mix(col, uFogColor, vFog);
+    vec3 amb = mix(uGround, uSky, n.y * 0.5 + 0.5) * 0.55 * (0.4 + 0.6 * vLm.g);
+    vec3 col = vColor * (amb + uSunColor * uSunStrength * ndl * 1.6 * vLm.r) * (0.65 + 0.35 * vH);
+    col = atmoFog(col, uFogColor, uFogDensity, vWorld);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -141,6 +146,9 @@ export class Forest {
         uSunStrength: sky.uniforms.uSunStrength,
         uSky: { value: hemi.color },
         uGround: { value: hemi.groundColor },
+        ...ATMO.uniforms,
+        uLightMap: { value: terrain.lightMap },
+        uMapHalf: { value: terrain.half },
       },
       vertexShader,
       fragmentShader,

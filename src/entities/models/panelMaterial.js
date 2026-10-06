@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { NOISE } from '../../world/glsl.js';
+import { ATMO } from '../../world/Atmosphere.js';
 
 /**
  * Metallic skin with procedural panel lines, per-panel tone variation, soot
@@ -24,6 +25,7 @@ export function createSkinMaterial({
   });
 
   mat.onBeforeCompile = (shader) => {
+    ATMO.patch(shader);
     shader.uniforms.uPanelScale = { value: panelScale };
     shader.uniforms.uLine = { value: lineStrength };
     shader.uniforms.uSoot = { value: soot };

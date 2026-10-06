@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { fbm2, valueNoise, clamp, smoothstep, lerp } from '../core/math.js';
 import { NOISE } from './glsl.js';
+import { ATMO } from './Atmosphere.js';
 
 // Procedural heightfield terrain. Heights are generated once into a grid and
 // the same grid drives both the rendered mesh and gameplay queries
@@ -23,7 +24,7 @@ const PALETTES = {
 };
 
 export class Terrain {
-  constructor({ size = 32000, res = 256, seed = 1, type = 'islands', flatZones = [] }) {
+  constructor({ size = 32000, res = 256, seed = 1, type = 'islands', flatZones = [], sunDir = null }) {
     this.size = size;
     this.res = res;
     this.seed = seed;
@@ -34,6 +35,7 @@ export class Terrain {
     this.cell = size / (res - 1);
     this.heights = new Float32Array(res * res);
     this._generate();
+    this.lightMap = this._bakeLight(sunDir);
     this.mesh = this._buildMesh();
     this.depthTexture = this._buildDepthTexture();
   }
@@ -212,10 +214,13 @@ export class Terrain {
       uSnow: { value: new THREE.Color().setRGB(...P.snow) },
       uSand: { value: new THREE.Color().setRGB(...P.sand) },
       uFields: { value: P.fields ?? 1 },
+      uLightMap: { value: this.lightMap },
+      uMapHalf: { value: this.half },
     };
     const U = this.uniforms;
     mat.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, U);
+      ATMO.patch(shader);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vTerrainPos;\nvarying vec3 vTerrainN;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTerrainPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvTerrainN = normal;');
@@ -227,6 +232,8 @@ export class Terrain {
           varying vec3 vTerrainN;
           uniform float uTime, uCloudShadow, uSnowLine, uFields;
           uniform vec3 uRock, uSnow, uSand;
+          uniform sampler2D uLightMap;
+          uniform float uMapHalf;
           float gRock;
           float gSnow;
           ${NOISE}`,
@@ -268,6 +275,18 @@ export class Terrain {
           }`,
         )
         .replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+          {
+            // Baked mountain shadows (R) and ambient occlusion (G).
+            vec2 luv = clamp((vTerrainPos.xz + uMapHalf) / (2.0 * uMapHalf), 0.0, 1.0);
+            vec4 lm = texture2D(uLightMap, luv);
+            reflectedLight.directDiffuse *= lm.r;
+            reflectedLight.directSpecular *= lm.r;
+            reflectedLight.indirectDiffuse *= 0.35 + 0.65 * lm.g;
+          }`,
+        )
+        .replace(
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
           roughnessFactor = clamp(roughnessFactor - gSnow * 0.35 - (1.0 - smoothstep(-0.5, 2.0, vTerrainPos.y)) * 0.5, 0.25, 1.0);`,
@@ -296,6 +315,75 @@ export class Terrain {
     return mesh;
   }
 
+  /**
+   * Bakes sun visibility (soft mountain shadows) and horizon-based ambient
+   * occlusion into a small texture. The sun never moves during a mission, so
+   * this costs nothing per frame.
+   */
+  _bakeLight(sunDir) {
+    const L = 256;
+    const data = new Uint8Array(L * L * 4);
+    const step = this.size / (L - 1);
+    const sun = sunDir && sunDir.y > 0.02 ? sunDir : null;
+    let sx = 0;
+    let sz = 0;
+    let tanE = 0;
+    if (sun) {
+      const hl = Math.hypot(sun.x, sun.z) || 1;
+      sx = sun.x / hl;
+      sz = sun.z / hl;
+      tanE = sun.y / hl;
+    }
+    const dirs = 8;
+    const aoDist = [60, 160, 380, 800];
+    for (let j = 0; j < L; j++) {
+      const z = -this.half + j * step;
+      for (let i = 0; i < L; i++) {
+        const x = -this.half + i * step;
+        const h = this.heightAt(x, z);
+        let vis = 1;
+        if (sun && h > -5) {
+          // March towards the sun; penumbra from the closest miss.
+          let minClear = Infinity;
+          for (let k = 1; k <= 48; k++) {
+            const t = k * k * 4 + k * 40;
+            if (t > 9000) break;
+            const ray = Math.max(h, 0) + 3 + t * tanE;
+            const ground = this.heightAt(x + sx * t, z + sz * t);
+            const clear = (ray - ground) / (t * 0.035 + 8);
+            if (clear < minClear) minClear = clear;
+            if (ray > 2600) break;
+          }
+          vis = smoothstep(-0.6, 1, minClear);
+        }
+        let occ = 0;
+        if (h > -5) {
+          for (let d = 0; d < dirs; d++) {
+            const a = (d / dirs) * Math.PI * 2;
+            const cx = Math.cos(a);
+            const cz = Math.sin(a);
+            let maxSlope = 0;
+            for (const r of aoDist) {
+              const s = (this.heightAt(x + cx * r, z + cz * r) - h) / r;
+              if (s > maxSlope) maxSlope = s;
+            }
+            occ += maxSlope / Math.sqrt(1 + maxSlope * maxSlope);
+          }
+          occ /= dirs;
+        }
+        const o = (j * L + i) * 4;
+        data[o] = Math.round(clamp(vis, 0, 1) * 255);
+        data[o + 1] = Math.round(clamp(1 - occ * 1.4, 0, 1) * 255);
+        data[o + 3] = 255;
+      }
+    }
+    const t = new THREE.DataTexture(data, L, L, THREE.RGBAFormat, THREE.UnsignedByteType);
+    t.magFilter = t.minFilter = THREE.LinearFilter;
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    t.needsUpdate = true;
+    return t;
+  }
+
   /** Water depth (0 = shore, 1 = 40 m+) for shoreline foam and shallow colour. */
   _buildDepthTexture() {
     const { res, heights } = this;
@@ -313,6 +401,7 @@ export class Terrain {
   }
 
   dispose() {
+    this.lightMap.dispose();
     this.depthTexture.dispose();
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();

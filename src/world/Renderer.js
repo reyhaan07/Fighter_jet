@@ -67,6 +67,10 @@ const GradeShader = {
         col = acc / 6.0;
       }
       float l = dot(col, vec3(0.299, 0.587, 0.114));
+      // Filmic grade: gentle S-curve, a touch more saturation, split-tone.
+      col = mix(vec3(l), col, 1.12);
+      col = clamp(col, 0.0, 1.0);
+      col = col * col * (3.0 - 2.0 * col) * 0.35 + col * 0.65;
       col += (vec3(-0.008, 0.0, 0.014) * (1.0 - l) + vec3(0.016, 0.006, -0.01) * l);
       col *= 1.0 - smoothstep(0.25, 0.9, r2 * 2.2) * 0.35;
       col *= 1.0 - smoothstep(0.02, 0.5, r2 * (0.6 + uBlackout * 4.0)) * uBlackout;

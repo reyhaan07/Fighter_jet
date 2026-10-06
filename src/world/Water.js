@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { NOISE } from './glsl.js';
+import { ATMO, ATMO_GLSL } from './Atmosphere.js';
 
 // Ocean surface at y = 0. Normals come from a sum of directional
 // (Gerstner-style) waves plus noise ripples; colour blends from turquoise
@@ -24,6 +25,7 @@ export class Water {
         uFogDensity: { value: fogDensity },
         uDepthMap: { value: terrain.depthTexture },
         uMapHalf: { value: terrain.half },
+        ...ATMO.uniforms,
       },
       vertexShader: /* glsl */ `
         varying vec3 vWorld;
@@ -38,6 +40,7 @@ export class Water {
         uniform sampler2D uDepthMap;
         varying vec3 vWorld;
         ${NOISE}
+        ${ATMO_GLSL}
         // Slope of one directional wave (returns d/dx, d/dz).
         vec2 wave(vec2 p, vec2 dir, float k, float amp, float speed, float t) {
           float ph = dot(dir, p) * k + t * speed;
@@ -87,8 +90,7 @@ export class Water {
           vec3 foamCol = vec3(0.92, 0.95, 0.97) * clamp(sunAmt * 1.05, 0.06, 1.0) + uZenith * 0.3;
           col = mix(col, foamCol, foam);
 
-          float fog = 1.0 - exp(-uFogDensity * uFogDensity * dist * dist);
-          col = mix(col, uHorizon, fog);
+          col = atmoFog(col, uHorizon, uFogDensity, vWorld);
           gl_FragColor = vec4(col, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
