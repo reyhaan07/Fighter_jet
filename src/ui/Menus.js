@@ -98,7 +98,7 @@ export class Menus {
         <h1>STRIKE WING</h1>
       </div>
       <nav class="main-nav">
-        <button data-act="campaign" data-autofocus>Campaign</button>
+        <button class="play" data-act="campaign" data-autofocus>Play</button>
         <button data-act="survival">Survival</button>
         <button data-act="free">Free Flight · Training Range</button>
         <button data-act="hangar">Hangar</button>
@@ -140,10 +140,11 @@ export class Menus {
         </div>
         <div class="actions">
           <button data-act="prevLevel">‹</button>
-          <button class="primary" data-act="toHangar" data-launch="mission" ${locked ? 'disabled' : ''}>${locked ? 'Locked' : 'Loadout & Launch ›'}</button>
+          <button class="primary play-level" data-act="playLevel" ${locked ? 'disabled' : ''}>${locked ? 'Locked' : 'Play ›'}</button>
           <button data-act="nextLevel">›</button>
         </div>
-        <p class="muted small">Drag to pan · scroll to zoom · double-click a level to fly it</p>
+        <div class="actions"><button data-act="toHangar" data-launch="mission" ${locked ? 'disabled' : ''}>Change jet & weapons</button></div>
+        <p class="muted small">Click a level, then Play · drag to pan · scroll to zoom · double-click a level to fly it</p>
       </aside>
     </div>`;
   }
@@ -163,8 +164,7 @@ export class Menus {
         },
         onLaunch: (id) => {
           this.selectedMission = id;
-          this.pending = { kind: 'mission', id };
-          this.show('hangar');
+          this.game.launch({ kind: 'mission', id });
         },
       });
     }
@@ -432,6 +432,9 @@ export class Menus {
         break;
       case 'help':
         this.show('help');
+        break;
+      case 'playLevel':
+        g.launch({ kind: 'mission', id: this.selectedMission });
         break;
       case 'prevLevel':
       case 'nextLevel': {

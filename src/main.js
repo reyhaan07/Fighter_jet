@@ -32,6 +32,12 @@ async function boot() {
   });
   window.__game = game; // handy for debugging and the stress script
   await game.boot();
+  // Tell the one-click launcher (scripts/serve.mjs) the game window is still open.
+  if (location.port === '4173') {
+    const ping = () => fetch('./__alive', { cache: 'no-store' }).catch(() => {});
+    ping();
+    setInterval(ping, 15000);
+  }
   boot.remove();
 }
 

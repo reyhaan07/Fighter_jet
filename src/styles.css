@@ -209,3 +209,6 @@ table.help td { font-size: 13px; }
 .map-brief dt { color: #b9a37c; }
 .map-brief .actions button:not(.primary) { min-width: 46px; }
 @media (max-width: 900px) { .map-brief { top: auto; height: 46vh; width: auto; left: 12px; right: 12px; bottom: 12px; } }
+
+.main-nav button.play { font-size: 30px; padding: 16px 20px; background: linear-gradient(180deg, #2f7fb4, #1e5d88); border-color: #6fc3ff; color: #fff; border-left-color: #fff; }
+.map-brief .play-level { flex: 1; font-size: 20px !important; padding: 12px !important; }

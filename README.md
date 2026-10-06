@@ -30,6 +30,16 @@ After `npm install`, everything works with the network cable unplugged. `dist/` 
 
 > Click the game view to capture the mouse (pointer lock). Press **Esc** to release it and pause. Browsers only start audio after your first click or key press.
 
+### One-click desktop shortcut
+
+Run this once after `npm install`:
+
+```bash
+npm run shortcut
+```
+
+A **Strike Wing** icon appears on your desktop (Windows `.lnk`, macOS `Strike Wing.command`, Linux `.desktop`). Double-click it and the game opens in its own window: Edge on Windows, Chrome on macOS/Linux if installed, otherwise your default browser. There's no terminal and no internet involved; the small local server stops by itself a minute after you close the game. If you change the code, the shortcut rebuilds automatically on the next start. `npm run launch` does the same from a terminal.
+
 Developer shortcuts (append to the URL): `?free`, `?survival`, `?mission=m4` or `?mission=L57`, `?duel` (one bandit), `?stress` (stress test), `?quality=ultra`.
 
 ---

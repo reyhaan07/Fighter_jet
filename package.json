@@ -15,7 +15,9 @@
     "desktop:tauri": "npx --yes @tauri-apps/cli@2 build",
     "desktop:tauri:dev": "npx --yes @tauri-apps/cli@2 dev",
     "desktop:electron": "npm run build && npx --yes electron@33 .",
-    "desktop:electron:package": "npm run build && npx --yes @electron/packager@18 . \"Strike Wing\" --out=release --overwrite --icon=src-tauri/icons/icon --ignore=^/src/ --ignore=^/src-tauri --ignore=^/node_modules --ignore=^/scripts --ignore=^/release --ignore=^/stress-shots"
+    "desktop:electron:package": "npm run build && npx --yes @electron/packager@18 . \"Strike Wing\" --out=release --overwrite --icon=src-tauri/icons/icon --ignore=^/src/ --ignore=^/src-tauri --ignore=^/node_modules --ignore=^/scripts --ignore=^/release --ignore=^/stress-shots",
+    "launch": "node scripts/serve.mjs",
+    "shortcut": "node scripts/create-shortcut.mjs"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",
