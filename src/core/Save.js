@@ -30,11 +30,32 @@ export function defaultSave() {
   };
 }
 
+/** Fill in anything missing from an older (or imported) save and migrate it. */
+export function normalizeSave(loaded) {
+  const base = defaultSave();
+  if (!loaded || typeof loaded !== 'object') return base;
+  const lo = loaded.loadout || {};
+  const d = {
+    ...base,
+    ...loaded,
+    campaign: { ...base.campaign, ...(loaded.campaign || {}) },
+    loadout: { ...base.loadout, ...lo, slots: { ...base.loadout.slots, ...(lo.slots || {}) } },
+  };
+  const c = d.campaign;
+  c.completed ||= {};
+  c.bestScores ||= {};
+  for (const k of ['unlockedWeapons', 'unlockedAircraft', 'leaderboard']) if (!Array.isArray(d[k])) d[k] = base[k];
+  if (!d.unlockedAircraft.includes('viper')) d.unlockedAircraft.unshift('viper');
+  if (!d.upgrades || typeof d.upgrades !== 'object') d.upgrades = {};
+  if (typeof d.credits !== 'number' || !isFinite(d.credits)) d.credits = base.credits;
+  // The first release had 10 missions: beating m10 should open level 11.
+  if (c.completed.m10 && c.unlocked < 11) c.unlocked = 11;
+  return d;
+}
+
 export class Save {
   constructor() {
-    const base = defaultSave();
-    const loaded = read();
-    this.data = loaded ? { ...base, ...loaded, campaign: { ...base.campaign, ...(loaded.campaign || {}) } } : base;
+    this.data = normalizeSave(read());
   }
 
   write() {
@@ -47,9 +68,10 @@ export class Save {
   }
 
   reset() {
-    const settings = this.data.settings;
+    const { settings, daily } = this.data;
     this.data = defaultSave();
     this.data.settings = settings;
+    if (daily) this.data.daily = daily; // the login streak is not progress
     this.write();
   }
 

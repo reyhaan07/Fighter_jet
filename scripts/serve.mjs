@@ -102,7 +102,14 @@ if (!built || newest(join(ROOT, 'src')) > built) {
 
 let lastPing = Date.now();
 const server = createServer(async (req, res) => {
-  const path = decodeURIComponent((req.url || '/').split('?')[0]);
+  let path;
+  try {
+    path = decodeURIComponent((req.url || '/').split('?')[0]);
+  } catch {
+    res.writeHead(400);
+    res.end();
+    return;
+  }
   if (path === '/__alive') {
     lastPing = Date.now();
     res.writeHead(204, { 'cache-control': 'no-store' });

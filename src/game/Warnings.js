@@ -11,7 +11,6 @@ export class Warnings {
     this.nearestMissile = Infinity;
     this.stall = false;
     this.pullUp = false;
-    this.outOfBounds = 0;
     this._lock = 0;
     this._sam = 0;
   }
@@ -52,8 +51,5 @@ export class Warnings {
     this.stall = f.stalled;
     const ground = s.world.surfaceAt(p.pos.x + p.vel.x * 4, p.pos.z + p.vel.z * 4);
     this.pullUp = p.vel.y < -20 && p.pos.y - ground < -p.vel.y * 6;
-    const lim = s.mapHalf * 0.82;
-    if (Math.abs(p.pos.x) > lim || Math.abs(p.pos.z) > lim) this.outOfBounds += dt;
-    else this.outOfBounds = 0;
   }
 }

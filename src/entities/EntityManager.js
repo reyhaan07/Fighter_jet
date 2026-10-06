@@ -25,9 +25,9 @@ export class EntityManager {
     this.byId = new Map();
     this.removeQueue = [];
     this.iterating = false;
-    this.airPool = new Pool(() => new Aircraft(), { initial: 32 });
-    this.groundPool = new Pool(() => new GroundUnit(), { initial: 32 });
-    this.heliPool = new Pool(() => new Helicopter(), { initial: 8 });
+    this.airPool = new Pool(() => new Aircraft(), { initial: 32, fifo: true });
+    this.groundPool = new Pool(() => new GroundUnit(), { initial: 32, fifo: true });
+    this.heliPool = new Pool(() => new Helicopter(), { initial: 8, fifo: true });
     this.counts = { enemiesAlive: 0 };
   }
 
@@ -57,7 +57,8 @@ export class EntityManager {
       }
     };
     swapOut(this.units, u);
-    swapOut(u.isAir ? this.air : this.ground, u);
+    swapOut(this.air, u); // both: a unit can change isAir after spawning (boss hull)
+    swapOut(this.ground, u);
     this.byId.delete(u.id);
     u.controller = null;
     u.loadout = null;

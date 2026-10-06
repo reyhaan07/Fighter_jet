@@ -39,6 +39,7 @@ export class Session {
   constructor(game, mission) {
     this.game = game;
     this.mission = mission;
+    this._timers = [];
     this.time = 0;
     this.renderTime = 0;
     this.scene = new THREE.Scene();
@@ -191,10 +192,10 @@ export class Session {
           this.creditsEarned += Math.round(u.credits * mult);
         }
         if (byPlayer) {
-          const daily = this.game.daily;
-          daily.track(u.isAir ? 'killAir' : u.kind === 'sea' ? 'killSea' : 'killGround');
-          if (['cannon20', 'cannon30', 'railgun'].includes(cause)) daily.track('gunKills');
-          if (u.def.role === 'boss' || u.def.role === 'carrier') daily.track('bossKill');
+          const daily = this.mission.id === 'free' ? null : this.game.daily;
+          daily?.track(u.isAir ? 'killAir' : u.kind === 'sea' ? 'killSea' : 'killGround');
+          if (['cannon20', 'cannon30', 'railgun'].includes(cause)) daily?.track('gunKills');
+          if (u.def.role === 'boss' || u.def.role === 'carrier') daily?.track('bossKill');
           this.kills++;
           this.stats.kills++;
           this.hud?.hit(true);
@@ -207,10 +208,15 @@ export class Session {
         } else if (killer?.isWingman) this.hud?.killFeed(`${killer.callsign}: ${u.def.name.toUpperCase()} DOWN`);
       }
       if (u === this.player) this._playerDown();
-      if (u.isWingman) this.radio(u.callsign, "I'm hit! Ejecting!");
+      if (u.isWingman) {
+        this.radio(u.callsign, "I'm hit! Ejecting!");
+        // The aircraft object goes back to the pool and gets reused; keep only a marker.
+        const i = this.wingmen.indexOf(u);
+        if (i >= 0) this.wingmen[i] = { callsign: u.callsign, alive: false };
+      }
       this.mode?.onKill?.(u, killer);
     });
-    ev.on('playerFired', () => this.game.daily.track('missiles'));
+    ev.on('playerFired', () => this.mission.id !== 'free' && this.game.daily.track('missiles'));
     ev.on('decoyed', (o) => {
       if (o.target === this.player || o.team === TEAM.ENEMY) this.hud?.message('MISSILE DECOYED', 1.2, '#7fd4ff');
     });
@@ -293,6 +299,11 @@ export class Session {
     }
   }
 
+  /** Run fn after `sec` seconds of game time (stops while paused, dropped if the session ends). */
+  after(sec, fn) {
+    this._timers.push({ at: this.time + sec, fn });
+  }
+
   onCruiseEnd() {
     this.cameraRig.killTimer = 0;
   }
@@ -303,6 +314,14 @@ export class Session {
     input.beginStep();
     this.time += dt;
     this.fx.setTime(this.time);
+    for (let i = this._timers.length - 1; i >= 0; i--) {
+      const t = this._timers[i];
+      if (this.time >= t.at) {
+        this._timers.splice(i, 1);
+        t.fn();
+        if (this.ended) return;
+      }
+    }
     const p = this.player;
 
     if (input.pressed('camera')) this.cameraRig.cycle();
@@ -323,6 +342,7 @@ export class Session {
 
     // Steerable cruise missile takes over the controls.
     const cm = this.ordnance.cruise;
+    this.controller.holdFire = !!cm;
     if (cm) {
       _d.set(0, 0, -1).applyQuaternion(cm.quat);
       const pitch = input.axis('pitchDown', 'pitchUp') * (this.game.settings.invertY ? -1 : 1);
@@ -363,7 +383,6 @@ export class Session {
     this.fx.step(dt);
     this.warnings.step(dt);
     this.mode?.step?.(dt);
-    if (this.warnings.outOfBounds > 12 && p.alive) this.combat.hit(p, 20 * dt, null, p.pos.x, p.pos.y, p.pos.z);
   }
 
   // ── Rendering ────────────────────────────────────────────────────────
@@ -410,9 +429,8 @@ export class Session {
 
     this.world.update(this.camera, this.renderTime, p.renderPos, p.flight.speed, this.game.renderer.pixelRatio);
     this._postFx(p);
-    const blackout = Math.max(0, (p.flight.gForce - p.stats.maxG * 0.85) / (p.stats.maxG * 0.4));
-    this._blackout = (this._blackout || 0) + (Math.min(0.8, blackout) - (this._blackout || 0)) * Math.min(1, dt * 2);
-    this.game.renderer.setEffects(this._blackout, p.disabled > 0 ? 0.6 : 0);
+    const pc = this.controller;
+    this.game.renderer.setEffects(p.alive ? pc.vision : 0, p.disabled > 0 ? 0.6 : 0, p.alive ? pc.redout : 0);
     this.game.renderer.render(this.renderTime);
     this.hud?.draw(this, dt);
     this.audio?.update(this, dt);

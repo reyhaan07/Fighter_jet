@@ -16,7 +16,8 @@ function desktopDir() {
   if (p === 'win32') {
     try {
       // Handles OneDrive-redirected desktops.
-      return execSync('powershell -NoProfile -Command "[Environment]::GetFolderPath(\'Desktop\')"').toString().trim();
+      // UTF-8 output so folder names like "José" or "Área de Trabalho" survive.
+      return execSync('powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; [Environment]::GetFolderPath(\'Desktop\')"').toString('utf8').trim();
     } catch {
       return join(homedir(), 'Desktop');
     }
@@ -38,17 +39,20 @@ if (!existsSync(desktop)) mkdirSync(desktop, { recursive: true });
 if (p === 'win32') {
   // A tiny VBScript starts the server without a console window.
   const vbs = join(ROOT, 'scripts', 'launch.vbs');
+  // Windows Script Host reads UTF-16 (with BOM) correctly for any path.
   writeFileSync(
     vbs,
-    `Set sh = CreateObject("WScript.Shell")\r\nsh.CurrentDirectory = "${ROOT}"\r\nsh.Run """${NODE}"" ""${SERVE}""", 0, False\r\n`,
+    '\ufeff' + `Set sh = CreateObject("WScript.Shell")\r\nsh.CurrentDirectory = "${ROOT}"\r\nsh.Run """${NODE}"" ""${SERVE}""", 0, False\r\n`,
+    'utf16le',
   );
   const lnk = join(desktop, 'Strike Wing.lnk');
   const icon = join(ROOT, 'src-tauri', 'icons', 'icon.ico');
   const q = (x) => "'" + x.replace(/'/g, "''") + "'";
   const ps1 = join(ROOT, 'scripts', 'make-shortcut.ps1');
+  // UTF-8 with BOM: Windows PowerShell 5.1 otherwise assumes the ANSI code page.
   writeFileSync(
     ps1,
-    [
+    '\ufeff' + [
       `$s = (New-Object -ComObject WScript.Shell).CreateShortcut(${q(lnk)})`,
       `$s.TargetPath = 'wscript.exe'`,
       `$s.Arguments = ${q('"' + vbs + '"')}`,
@@ -57,6 +61,7 @@ if (p === 'win32') {
       `$s.Description = 'Strike Wing'`,
       `$s.Save()`,
     ].join('\r\n'),
+    'utf8',
   );
   execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1}"`, { stdio: 'inherit' });
   console.log(`Shortcut created: ${lnk}`);

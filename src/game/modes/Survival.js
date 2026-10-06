@@ -119,7 +119,7 @@ export class Survival {
     if (this.over) return;
     this.over = true;
     const s = this.s;
-    setTimeout(() => {
+    s.after(3.5, () => {
       s.game.finishSession({
         mode: 'survival',
         success: false,
@@ -131,6 +131,6 @@ export class Survival {
         kills: s.kills,
         stats: s.stats,
       });
-    }, 3500);
+    });
   }
 }

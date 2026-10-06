@@ -57,6 +57,7 @@ export class Hud {
 
   /** Forget messages and feedback from a previous level. */
   reset() {
+    if (this._opacity !== 1) this.g.canvas.style.opacity = this._opacity = 1;
     this.messages.length = 0;
     this.feed.length = 0;
     this.radioLine = null;
@@ -137,6 +138,9 @@ export class Hud {
     const g = this.g;
     this.clear();
     if (!this.visible || !s.player) return;
+    // The HUD dims with the pilot's vision when blacking out.
+    const op = Math.round((1 - (s.controller?.vision || 0) * 0.85) * 20) / 20;
+    if (op !== this._opacity) g.canvas.style.opacity = this._opacity = op;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     g.lineWidth = 1.5;
     g.lineCap = 'round';
@@ -590,12 +594,16 @@ export class Hud {
       this.text('PULL UP', cx, y2, 26 * k, COL.danger, 'center', 600, 'ui');
       y2 += 30 * k;
     }
-    if (w.stall) {
-      this.text('STALL', cx, y2, 22 * k, COL.warn, 'center', 600, 'ui');
+    const pc = s.controller;
+    if (pc?.gloc > 0) {
+      this.text('G-LOC', cx, y2, 26 * k, COL.danger, 'center', 600, 'ui');
+      y2 += 30 * k;
+    } else if (pc?.gStress > 1.2) {
+      this.text('G-LOAD  EASE THE STICK', cx, y2, 20 * k, COL.warn, 'center', 600, 'ui');
       y2 += 26 * k;
     }
-    if (w.outOfBounds > 0) {
-      this.text(`RETURN TO COMBAT AREA  ${Math.max(0, Math.ceil(12 - w.outOfBounds))}`, cx, y2, 20 * k, COL.warn, 'center', 600, 'ui');
+    if (w.stall) {
+      this.text('STALL', cx, y2, 22 * k, COL.warn, 'center', 600, 'ui');
       y2 += 26 * k;
     }
     const p = s.player;

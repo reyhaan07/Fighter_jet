@@ -44,18 +44,21 @@ export class Targeting {
     }
     const i = list.indexOf(this.current);
     this.current = list[(i + 1) % list.length];
+    this._curId = this.current.id;
     this.s.audio?.click();
   }
 
   step(dt) {
     const p = this.s.player;
-    if (this.current && !this.current.alive) this.current = null;
+    // Dead, or its pooled object already reused for a different unit.
+    if (this.current && (!this.current.alive || this.current.id !== this._curId)) this.current = null;
     this.autoTimer -= dt;
     if (!this.current && this.autoTimer <= 0) {
       this.autoTimer = 0.5;
       const list = this._candidates(p.stats.radarRange);
       if (list.length && list[0]._tScore > 0.5) this.current = list[0];
     }
+    this._curId = this.current ? this.current.id : 0;
     p.target = this.current;
   }
 }

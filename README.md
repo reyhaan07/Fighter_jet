@@ -76,6 +76,15 @@ Every binding can be changed in **Settings → Controls**: click a binding and p
 
 **Mouse-aim mode** (on by default): the mouse moves an aim circle and an autopilot flies the nose toward it. Touching the arrow keys flies the jet directly, and the aim follows the nose so nothing snaps back. The guns gimbal a few degrees toward the aim, and when the selected target's lead point is near your aim, the guns fire at the lead point. Turn mouse-aim off (M, or Settings) for classic keyboard flying with optional auto-level.
 
+### Real-world flying, no invisible walls
+
+The sky has no edge: fly past the battle area as far as you like (it becomes open ocean). What limits you is physics and your body:
+
+- **Thin air.** Above about 3 km the air thins out. The engine loses thrust and the wings lose grip, so every jet has a natural ceiling around 13-15 km.
+- **G-forces.** Each airframe has a G limit (positive) and about -3 G (negative). Hold more than about 7.5 G and your vision tunnels and fades. Keep pulling and the pilot blacks out (**G-LOC**) for 3 seconds, hands off the stick. Ease off to recover.
+- **Redout.** Strong negative G (pushing the nose down hard) turns your vision red.
+- **Stall.** Fly too slowly (or too high for your speed) and the wings stop lifting and the nose drops.
+
 ### Gamepad (standard layout: Xbox / PlayStation)
 
 | Action | Button |
@@ -101,7 +110,7 @@ The HUD shows:
 - a CCIP pipper for bombs and a laser designator mark;
 - ammo, heat and energy per weapon, plus hull and shield status;
 - a radar, hit markers and optional damage numbers;
-- a red screen-edge vignette when you take damage, and stall, PULL UP and out-of-area warnings.
+- a red screen-edge vignette when you take damage, and stall, PULL UP, G-LOAD and G-LOC warnings.
 
 ---
 

@@ -24,12 +24,44 @@ export class PlayerController {
     this.manual = 0; // >0 while keyboard/stick flying overrides mouse aim
     this.mouseAim = settings.mouseAim;
     this.abDetent = false; // afterburner engaged via the throttle detent (mouse wheel)
+    this.gStress = 0; // accumulated high-G load on the pilot (G-LOC at 3)
+    this.gloc = 0; // seconds left unconscious after G-LOC
+    this.vision = 0; // 0..1 tunnel vision / blackout for the screen
+    this.redout = 0; // 0..1 negative-G redout
     this.autoLevel = settings.autoLevel;
+  }
+
+  /**
+   * Human limits on top of the airframe's: sustained G above ~7.5 builds up
+   * until the pilot greys out and then loses consciousness (G-LOC) for a few
+   * seconds, hands off the stick. Strong negative G causes a redout.
+   */
+  afterUpdate(u, dt) {
+    const g = u.flight.gForce;
+    if (this.gloc > 0) {
+      this.gloc -= dt;
+      const c = u.flight.controls;
+      c.pitch = c.roll = c.yaw = 0;
+      c.ab = c.brake = false;
+      u.trigger.gun = u.trigger.secondary = u.trigger.secondaryPressed = false;
+      if (this.gloc <= 0) this.gStress = 1.6; // waking up groggy
+    } else if (g > 7.5) {
+      this.gStress += (g - 7.5) * 0.35 * dt;
+      if (this.gStress >= 3) this.gloc = 3;
+    } else {
+      this.gStress = Math.max(0, this.gStress - (g < 4 ? 0.9 : 0.4) * dt);
+    }
+    const tunnel = clamp((g - 6) / 6, 0, 0.4);
+    const target = this.gloc > 0 ? 1 : Math.max(tunnel, Math.min(0.95, this.gStress / 3));
+    this.vision += (target - this.vision) * Math.min(1, dt * (this.gloc > 0 ? 3 : 2));
+    const red = clamp((-g - 2) / 2.5, 0, 0.85);
+    this.redout += (red - this.redout) * Math.min(1, dt * 2);
   }
 
   reset(u) {
     this.aimDir.set(0, 0, -1).applyQuaternion(u.quat);
     this.abDetent = false;
+    this.gStress = this.gloc = this.vision = this.redout = 0;
     this.manual = 0;
   }
 
@@ -128,6 +160,9 @@ export class PlayerController {
     t.secondaryPressed = inp.pressed('fireSecondary');
     t.secondaryReleased = t.secondary && !sec;
     t.secondary = sec;
+    // While steering a cruise missile (and the step it detonates) the fire
+    // buttons belong to the missile, not the jet's weapons.
+    if (this.holdFire) t.gun = t.secondary = t.secondaryPressed = false;
     t.defense = inp.pressed('defense');
     t.flares = inp.down('flares');
 

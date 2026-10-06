@@ -16,7 +16,7 @@ function visit(u, c) {
   const r = u.radius * 0.7 + 1;
   if (segmentPointDist2(c.x, c.y, c.z, c.dx, c.dy, c.dz, u.pos.x, u.pos.y, u.pos.z) > r * r) return;
   const t = ((u.pos.x - c.x) * c.dx + (u.pos.y - c.y) * c.dy + (u.pos.z - c.z) * c.dz) / (c.dx * c.dx + c.dy * c.dy + c.dz * c.dz);
-  if (t < c.bestT) {
+  if (t >= 0 && t < c.bestT) {
     c.bestT = t;
     c.best = u;
   }
@@ -36,9 +36,21 @@ export class LaserWeapon extends Weapon {
     if (!this.firing) super.passive(dt, ctx);
   }
 
+  onDeselect() {
+    if (this.firing && this.owner.isPlayer) this._ctx?.audio?.laser(false);
+    this.firing = false;
+  }
+
+  reset() {
+    super.reset();
+    this.firing = false;
+    this.lockout = 0;
+  }
+
   update(dt, ctx, trig) {
     const d = this.def;
     const o = this.owner;
+    this._ctx = ctx;
     this.firing = trig.held && this.lockout <= 0 && this.ammo > 0;
     if (!this.firing) {
       if (o.isPlayer) ctx.audio?.laser(false);

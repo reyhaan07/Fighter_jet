@@ -63,10 +63,7 @@ export class AIDirector {
   constructor(session) {
     this.s = session;
     this.entities = session.entities;
-    this.air = new Float32Array(MAX_AIR * A_STRIDE);
-    this.out = new Float32Array(MAX_AIR * O_STRIDE);
-    this.mis = new Float32Array(MAX_MIS * M_STRIDE);
-    this.misOut = new Float32Array(MAX_MIS * MO_STRIDE);
+    this._allocBuffers();
     this.airUnits = new Array(MAX_AIR).fill(null);
     this.misUnits = new Array(MAX_MIS).fill(null);
     this.inflight = false;
@@ -79,6 +76,13 @@ export class AIDirector {
     this.stamp = 0;
   }
 
+  _allocBuffers() {
+    this.air = new Float32Array(MAX_AIR * A_STRIDE);
+    this.out = new Float32Array(MAX_AIR * O_STRIDE);
+    this.mis = new Float32Array(MAX_MIS * M_STRIDE);
+    this.misOut = new Float32Array(MAX_MIS * MO_STRIDE);
+  }
+
   _ensureWorker() {
     if (this.worker || this.workerFailed) return !!this.worker;
     try {
@@ -88,6 +92,8 @@ export class AIDirector {
         this.workerFailed = true;
         this.worker?.terminate();
         this.worker = null;
+        // The buffers were transferred to the dead worker: make new ones.
+        if (this.inflight) this._allocBuffers();
         this.inflight = false;
       };
       return true;
@@ -100,7 +106,8 @@ export class AIDirector {
   step(dt) {
     const s = this.s;
     const count = this.entities.air.length + s.ordnance.guidedCount;
-    this.useWorker = count > WORKER_THRESHOLD && this._ensureWorker();
+    // Stay on the worker while a request is out (its buffers are transferred).
+    this.useWorker = (this.inflight || count > WORKER_THRESHOLD) && this._ensureWorker();
     this.stats.mode = this.useWorker ? 'worker' : 'inline';
     if (this.useWorker) {
       if (!this.inflight) {

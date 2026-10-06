@@ -81,7 +81,14 @@ export class FreeFlight {
       }
       return;
     }
-    if (this.duel) return;
+    if (this.duel) {
+      if (!this._done && !this._down && s.time > 2 && s.entities.counts.enemiesAlive === 0) {
+        this._done = true;
+        s.hud?.message('BANDIT DOWN — DUEL WON', 3, '#8dffb5');
+        s.after(3, () => s.game.finishSession({ mode: 'free', success: true, title: 'DUEL WON', subtitle: 'Bandit destroyed', score: s.score, credits: 0, kills: s.kills, stats: s.stats }));
+      }
+      return;
+    }
     this.respawn -= dt;
     if (this.respawn <= 0) {
       this.respawn = 4;
@@ -106,6 +113,8 @@ export class FreeFlight {
 
   onPlayerDown() {
     // Respawn after a short delay in free flight.
-    setTimeout(() => this.s.game.restartSession?.(), 3500);
+    if (this.s.ended || this._down) return;
+    this._down = true;
+    this.s.after(3.5, () => this.s.game.restartSession());
   }
 }

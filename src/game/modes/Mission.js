@@ -129,6 +129,7 @@ export class Mission {
     b.flying = true;
     b.isAir = true;
     b.ghost = true; // the hull itself is not a hitbox: hit the weak points
+    b.invulnerable = true; // only the reactor core can bring it down (no splash kills)
     b.heat = 1;
     this.bossUnit = b;
     this.engines = [];
@@ -191,6 +192,9 @@ export class Mission {
         this.s.hud?.message('REACTOR CORE EXPOSED', 3, '#ff5a4a');
         this.objective('core', 'Destroy the reactor core', { kind: 'destroy', group: 'core', count: 1 });
       }
+    }
+    if (u.objective === 'core') {
+      for (const o of this.objectives) if (o.kind === 'boss') o.done = true;
     }
     if (u.objective === 'core' && this.bossUnit?.active) {
       // Boss kill: chain explosions, slow motion, kill cam.
@@ -280,9 +284,9 @@ export class Mission {
     } else {
       s.hud?.message('MISSION FAILED', 4, '#ff5a4a');
     }
-    const delay = success ? 4500 : 3500;
-    setTimeout(() => {
-      if (s.game.session !== s) return;
+    const delay = success ? 4.5 : 3.5;
+    const finish = () => {
+      s.pendingFinish = null;
       s.game.finishSession({
         mode: 'campaign',
         missionId: this.m.id,
@@ -295,6 +299,8 @@ export class Mission {
         stats: s.stats,
         time: s.time,
       });
-    }, delay);
+    };
+    s.pendingFinish = finish;
+    s.after(delay, finish);
   }
 }

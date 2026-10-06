@@ -31,7 +31,9 @@ export class BombWeapon extends Weapon {
       const t = o.target;
       if (t && t.alive && !t.isAir) target = t;
     }
-    const aim = o.isPlayer ? ctx.groundAim() : null;
+    // Laser spot where the pilot aims; if that misses the ground, the bomb's
+    // own predicted impact point (never back up to the release point).
+    const aim = o.isPlayer ? ctx.groundAim() || ctx.bombImpact() : null;
     ctx.ordnance.launch(d, o, target, _p, dir, sp, { damage: this.damage, aimPoint: aim || _p });
     if (o.isPlayer) ctx.audio?.bombRelease();
   }

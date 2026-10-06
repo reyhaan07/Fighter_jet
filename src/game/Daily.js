@@ -30,9 +30,12 @@ function dayDiff(a, b) {
 export class Daily {
   constructor(save) {
     this.save = save;
-    const d = (save.data.daily ||= { lastLogin: null, streak: 0, claimedLogin: null, date: null, tasks: [] });
-    this.d = d;
     this.refresh();
+  }
+
+  /** Always the live save object (reset / import replace save.data). */
+  get d() {
+    return (this.save.data.daily ||= { lastLogin: null, streak: 0, claimedLogin: null, date: null, tasks: [] });
   }
 
   /** Roll over to a new day: new tasks, streak continues or resets. */

@@ -26,6 +26,7 @@ export class FlightState {
     this.aoa = 0;
     this.bank = 0;
     this.overG = 0;
+    this.airDensity = 1;
     this.controls = { pitch: 0, roll: 0, yaw: 0, ab: false, brake: false };
   }
   reset(speed, throttle = 0.75) {
@@ -61,14 +62,22 @@ export function stepFlight(u, stats, dt, mult = 1) {
   }
   _vdir.copy(u.vel).divideScalar(speed);
 
+  // Thin air: above ~3 km density falls off (about 25 % at 10 km, 8 % at
+  // 15 km). Wings and controls feel the equivalent airspeed and the engine
+  // starves, so every jet has a natural service ceiling around 14-17 km.
+  const rho = Math.exp(-Math.max(0, u.pos.y - 3000) / 5000);
+  const eas = speed * Math.sqrt(rho);
+  f.airDensity = rho;
+
   // Control authority rises with dynamic pressure, saturates past corner speed.
-  const eff = clamp(0.25 + 0.75 * (speed / stats.cornerSpeed), 0.25, 1.15) * mult;
-  const lift = smoothstep(stats.stallSpeed * 0.75, stats.stallSpeed * 1.2, speed);
+  const eff = clamp(0.25 + 0.75 * (eas / stats.cornerSpeed), 0.25, 1.15) * mult;
+  const lift = smoothstep(stats.stallSpeed * 0.75, stats.stallSpeed * 1.2, eas);
   f.stalled = lift < 0.6;
   const auth = 0.35 + 0.65 * lift;
 
   // G-limited pitch rate (turn rate = a / v).
-  const gLimitRate = (stats.maxG * G) / Math.max(speed, 30);
+  // Airframes are rated for far less negative G (about -3) than positive.
+  const gLimitRate = ((c.pitch < 0 ? 3.2 : stats.maxG) * G) / Math.max(speed, 30);
   const pitchMax = Math.min(stats.pitchRate * eff, gLimitRate);
   const tx = c.pitch * pitchMax * auth * (c.pitch < 0 ? 0.7 : 1);
   const ty = -c.yaw * stats.yawRate * eff * auth;
@@ -95,9 +104,9 @@ export function stepFlight(u, stats, dt, mult = 1) {
   _up.set(0, 1, 0).applyQuaternion(u.quat);
 
   // Longitudinal forces.
-  const thrust = f.throttle * stats.thrust + f.afterburner * stats.abThrust;
+  const thrust = (f.throttle * stats.thrust + f.afterburner * stats.abThrust) * Math.pow(rho, 1.2);
   const dragK = (stats.thrust + stats.abThrust) / (stats.maxSpeed * stats.maxSpeed);
-  const drag = dragK * speed * speed + (c.brake ? stats.brake * speed * speed * 0.01 + 8 : 0);
+  const drag = (dragK * speed * speed + (c.brake ? stats.brake * speed * speed * 0.01 + 8 : 0)) * rho;
   const induced = stats.induced * Math.abs(av.x) * speed;
   speed += (thrust - drag - induced - G * _fwd.y) * dt;
   if (speed < 5) speed = 5;

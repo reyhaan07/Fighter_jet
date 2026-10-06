@@ -2,8 +2,9 @@
 // and recycled; `acquire` never allocates once the pool is warm.
 
 export class Pool {
-  constructor(factory, { initial = 0, max = Infinity, reset } = {}) {
+  constructor(factory, { initial = 0, max = Infinity, reset, fifo = false } = {}) {
     this.factory = factory;
+    this.fifo = fifo; // reuse the longest-freed object first (fewer stale references)
     this.reset = reset;
     this.max = max;
     this.free = [];
@@ -21,7 +22,7 @@ export class Pool {
 
   /** Returns a recycled object or null when the pool is exhausted. */
   acquire() {
-    let o = this.free.pop();
+    let o = this.fifo ? this.free.shift() : this.free.pop();
     if (!o) {
       if (this.created >= this.max) return null;
       o = this._create();

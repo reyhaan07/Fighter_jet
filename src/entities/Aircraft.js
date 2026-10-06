@@ -88,6 +88,7 @@ export class Aircraft extends Unit {
       this.trigger.gun = this.trigger.secondary = false;
     } else if (this.controller) {
       this.controller.update(this, dt, ctx);
+      this.controller.afterUpdate?.(this, dt);
     }
     stepFlight(this, this.stats, dt, this.disabled > 0 ? 0.4 : 1);
 

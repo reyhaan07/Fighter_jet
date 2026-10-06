@@ -37,6 +37,7 @@ export class Input {
       if (!this._capture && (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')) return;
       if (this._capture) {
         e.preventDefault();
+        e.stopImmediatePropagation();
         if (e.code !== 'Escape') this._finishCapture(e.code);
         else this._finishCapture(null);
         return;
@@ -52,8 +53,9 @@ export class Input {
     this._onMouseDown = (e) => {
       const code = 'Mouse' + e.button;
       if (this._capture) {
-        e.preventDefault();
-        this._finishCapture(code);
+        const own = e.target?.closest?.('.bind.capture');
+        if (own) e.preventDefault();
+        this._finishCapture(own ? code : null);
         return;
       }
       if (e.target !== this.canvas) return;
@@ -79,7 +81,7 @@ export class Input {
     this._onWheel = (e) => {
       const code = e.deltaY < 0 ? 'WheelUp' : 'WheelDown';
       if (this._capture) {
-        this._finishCapture(code);
+        if (e.target?.closest?.('.bind.capture')) this._finishCapture(code); // else: just scrolling the list
         return;
       }
       if (e.target !== this.canvas) return;
@@ -268,12 +270,21 @@ export class Input {
   setBinding(action, index, code) {
     const list = this.bindings[action];
     if (code) {
-      // A code drives only one action: remove it elsewhere.
+      const old = list[index];
+      // A code drives only one action: remove it from the others.
       for (const l of Object.values(this.bindings)) {
+        if (l === list) continue;
         const i = l.indexOf(code);
         if (i >= 0) l.splice(i, 1);
       }
-      list[index] = code;
+      const j = list.indexOf(code);
+      if (j >= 0 && j !== index) {
+        // Already bound here in another slot: move it into the chosen slot.
+        list.splice(j, 1);
+        const k = old ? list.indexOf(old) : -1;
+        if (k >= 0) list[k] = code;
+        else list.push(code);
+      } else list[index] = code;
     } else list.splice(index, 1);
     for (let i = list.length - 1; i >= 0; i--) if (!list[i]) list.splice(i, 1);
     this._rebuildGameKeys();

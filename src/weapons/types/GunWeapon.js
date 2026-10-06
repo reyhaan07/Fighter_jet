@@ -38,7 +38,21 @@ export class GunWeapon extends Weapon {
     if (!this.firing) this.spin = Math.max(0, this.spin - dt * 2);
   }
 
+  onDeselect() {
+    if (this.firing && this.owner.isPlayer) this._ctx?.audio?.gunStop(this.id);
+    this.firing = false;
+  }
+
+  reset() {
+    super.reset();
+    this.firing = false;
+    this.heat = 0;
+    this.overheated = 0;
+    this.spin = 0;
+  }
+
   update(dt, ctx, trig) {
+    this._ctx = ctx;
     const d = this.def;
     this.firing = trig.held && this.overheated <= 0 && (this.ammo >= 1 || this.infinite);
     if (!this.firing) {

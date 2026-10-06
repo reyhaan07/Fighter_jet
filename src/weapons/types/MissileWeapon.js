@@ -36,6 +36,7 @@ export class MissileWeapon extends Weapon {
   }
 
   onDeselect() {
+    this.volleyLeft = 0;
     this.locks.length = 0;
     this.lockProgress = 0;
     this.candidate = null;

@@ -46,7 +46,7 @@ export class Game {
     this.loop = new Loop({
       fpsCap: this.settings.targetFps,
       onStep: (dt) => {
-        if (!this.session || this.paused) return;
+        if (!this.session || this.paused || this.loading) return;
         this.perf.beginStep();
         this.session.step(dt);
         this.perf.endStep();
@@ -55,7 +55,9 @@ export class Game {
         const t0 = performance.now();
         this.input.pollGamepad();
         this.input.flying = !!this.session && !this.paused;
-        if (this.session) {
+        if (this.loading) {
+          /* loading screen is up; the session renders itself while warming up */
+        } else if (this.session) {
           if (this.paused) {
             this.renderer.render(this.session.renderTime);
             this.hud.draw(this.session, 0);
@@ -138,7 +140,7 @@ export class Game {
 
   /** Start a mode from the menus. what = { kind: 'mission'|'survival'|'free', id? } */
   async launch(what) {
-    if (!what) return;
+    if (!what || this.loading) return;
     const lo = this.save.data.loadout;
     let mission;
     if (what.kind === 'mission') {
@@ -151,10 +153,15 @@ export class Game {
     }
     mission.retry = what;
     this.menus.loadingText = what.kind === 'mission' ? `Mission: ${mission.def.name}` : what.kind === 'survival' ? 'Survival' : 'Training range';
+    this.loading = true;
     this.menus.show('loading', false);
-    // Let the loading screen paint before the heavy build.
-    await new Promise((r) => setTimeout(r, 30));
-    await this.startSession(mission);
+    try {
+      // Let the loading screen paint before the heavy build.
+      await new Promise((r) => setTimeout(r, 30));
+      await this.startSession(mission);
+    } finally {
+      this.loading = false;
+    }
     this.menus.hide();
     this.audio.unlock();
     if (this.settings.mouseAim) this.input.requestPointerLock();
@@ -195,7 +202,7 @@ export class Game {
   }
 
   pause() {
-    if (!this.session || this.paused) return;
+    if (!this.session || this.paused || this.loading) return;
     this.paused = true;
     this.pausedAt = performance.now();
     this.loop.paused = true;
@@ -216,6 +223,15 @@ export class Game {
   }
 
   quitToMenu() {
+    // Mission already won or lost: quitting during the countdown still counts it.
+    const pending = this.session?.pendingFinish;
+    if (pending) {
+      this.paused = false;
+      this.loop.paused = false;
+      this.audio.suspendGame(false);
+      pending();
+      return;
+    }
     this.endSession();
     this._toMenu();
     this.menus.stack.length = 0;

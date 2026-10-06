@@ -1,6 +1,7 @@
 import { AIRCRAFT, AIRCRAFT_ORDER, PAINTS } from '../config/aircraft.js';
 import { LEVELS, CHAPTERS, levelById } from '../config/campaign.js';
 import { WorldMap } from './WorldMap.js';
+import { normalizeSave } from '../core/Save.js';
 import { WEAPONS, weaponsForSlot } from '../weapons/registry.js';
 import { UPGRADES, MAX_LEVEL } from '../config/upgrades.js';
 import { ACTIONS, describeCode } from '../config/controls.js';
@@ -41,7 +42,7 @@ export class Menus {
       this.render();
     });
     window.addEventListener('keydown', (e) => {
-      if (e.code !== 'Escape' || !this.screen || this.capturing) return;
+      if (e.code !== 'Escape' || !this.screen || this.capturing || this.screen === 'loading' || e.defaultPrevented) return;
       if (performance.now() - (this.game.pausedAt || 0) < 400) return;
       if (this.screen === 'pause') this.game.resume();
       else if (this.stack.length) this.back();
@@ -631,6 +632,10 @@ export class Menus {
         break;
       }
       case 'resetProgress':
+        if (g.session) {
+          alert('Quit the current mission first, then reset progress from the main menu.');
+          break;
+        }
         if (confirm('Reset all campaign progress, credits and unlocks?')) {
           g.save.reset();
           g.persist();
@@ -680,10 +685,10 @@ export class Menus {
         try {
           const data = JSON.parse(txt);
           if (!data || typeof data.credits !== 'number') throw new Error('not a save file');
-          Object.assign(this.game.save.data, data);
+          this.game.save.data = normalizeSave(data);
           this.game.save.write();
-          alert('Save imported. Settings apply after a restart of the game.');
-          this.render();
+          alert('Save imported. The game will now reload.');
+          location.reload();
         } catch (err) {
           alert('Could not import: ' + err.message);
         }

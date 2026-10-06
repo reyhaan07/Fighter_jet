@@ -17,6 +17,7 @@ const GradeShader = {
     uGrain: { value: 0.025 },
     uAberration: { value: 0.0012 },
     uBlackout: { value: 0 },
+    uRedout: { value: 0 },
     uEmp: { value: 0 },
     uHeatA: { value: new THREE.Vector2(0.5, 0.5) },
     uHeatB: { value: new THREE.Vector2(0.5, 0.5) },
@@ -28,7 +29,7 @@ const GradeShader = {
   vertexShader: /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uTime, uGrain, uAberration, uBlackout, uEmp, uHeat, uHeatWidth, uSpeed, uAspect;
+    uniform float uTime, uGrain, uAberration, uBlackout, uRedout, uEmp, uHeat, uHeatWidth, uSpeed, uAspect;
     uniform vec2 uHeatA, uHeatB;
     varying vec2 vUv;
     float h(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime * 7.13) * 43758.5453); }
@@ -74,6 +75,9 @@ const GradeShader = {
       col += (vec3(-0.008, 0.0, 0.014) * (1.0 - l) + vec3(0.016, 0.006, -0.01) * l);
       col *= 1.0 - smoothstep(0.25, 0.9, r2 * 2.2) * 0.35;
       col *= 1.0 - smoothstep(0.02, 0.5, r2 * (0.6 + uBlackout * 4.0)) * uBlackout;
+      // Redout (negative G): blood pushed into the head tints vision red.
+      col = mix(col, vec3(dot(col, vec3(0.5, 0.35, 0.15)) * 1.3 + 0.08, col.g * 0.12, col.b * 0.1), uRedout);
+      col *= 1.0 - smoothstep(0.05, 0.6, r2 * (0.6 + uRedout * 3.0)) * uRedout * 0.6;
       col += (h(vUv * 1000.0) - 0.5) * uGrain;
       gl_FragColor = vec4(col, 1.0);
     }`,
@@ -239,9 +243,10 @@ export class Renderer {
     }
   }
 
-  setEffects(blackout, emp) {
+  setEffects(blackout, emp, redout = 0) {
     if (!this.grade) return;
     this.grade.uniforms.uBlackout.value = blackout;
+    this.grade.uniforms.uRedout.value = redout;
     this.grade.uniforms.uEmp.value = emp;
   }
 

@@ -254,6 +254,12 @@ export class Ordnance {
       o.age += dt;
       o.life -= dt;
       if (o.guided) guided++;
+      // Units are pooled: if the target object was recycled into a new unit
+      // (its id changed), the track is lost instead of jumping to the new one.
+      if (o.target !== o._tRef) {
+        o._tRef = o.target;
+        o._tId = o.target ? o.target.id : 0;
+      } else if (o.target && o.target.id !== o._tId) o.target = o._tRef = null;
       if (o.kind === 'drone') this._drone(o, dt, ctx);
       else this._fly(o, dt, ctx);
       if (o.alive && o.life <= 0) this.detonate(o, null, o.kind !== 'drone');
