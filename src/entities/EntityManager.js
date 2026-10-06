@@ -14,6 +14,7 @@ import { TEAM } from './Unit.js';
 // for collisions, and drawn through the InstancedRenderer.
 
 const _v = new THREE.Vector3();
+const _f = new THREE.Vector3();
 
 export class EntityManager {
   constructor(session) {
@@ -183,20 +184,51 @@ export class EntityManager {
     for (let i = 0; i < list.length; i++) list[i].interpolate(alpha);
   }
 
-  render(instanced, glows, camera) {
+  render(instanced, glows, camera, beams) {
     const list = this.units;
     for (let i = 0; i < list.length; i++) {
       const u = list[i];
       if (u.isPlayer || !u.renderKey) continue;
       if (u.hidden) continue;
       instanced.add(u.renderKey, u.renderPos, u.renderQuat, u.renderScale || 1, u.paint);
-      // Engine glow for jets (cheap stand-in for the player's afterburner shader).
-      if (u.isAir && u.flight && u.kind === 'air') {
-        const ab = u.flight.afterburner;
-        const k = 0.4 + u.flight.throttle * 0.4 + ab;
-        _v.set(0, 0, u.def.radius * 0.95).applyQuaternion(u.renderQuat).add(u.renderPos);
-        if (_v.distanceToSquared(camera.position) < 9e6 || ab > 0.3) glows.add(_v.x, _v.y, _v.z, 2 + ab * 3, 3 * k, 1.6 * k, 0.7 * k, 0.6);
+      // Afterburner plumes and navigation lights for jets.
+      if (u.isAir && u.flight && u.kind === 'air') this._jetLights(u, glows, beams, camera);
+    }
+  }
+
+  _jetLights(u, glows, beams, camera) {
+    const d2 = u.renderPos.distanceToSquared(camera.position);
+    if (d2 > 1.2e8) return;
+    const an = this.s.models.anchors[u.renderKey];
+    const q = u.renderQuat;
+    const ab = u.flight.afterburner;
+    const thr = u.flight.throttle;
+    _f.set(0, 0, 1).applyQuaternion(q);
+    if (an) {
+      const len = 2.5 + thr * 3 + ab * 10;
+      const k = 0.5 + thr * 0.5 + ab;
+      for (let i = 0; i < an.nozzles.length; i++) {
+        _v.copy(an.nozzles[i]).applyQuaternion(q).add(u.renderPos);
+        glows.add(_v.x, _v.y, _v.z, 1.6 + ab * 2.4, 3 * k, 1.7 * k, 0.8 * k, 0.6);
+        if (beams && d2 < 2.5e7) {
+          beams.add(_v.x, _v.y, _v.z, _v.x + _f.x * len, _v.y + _f.y * len, _v.z + _f.z * len, 0.9 + ab * 0.4, 0, 2.2 * k, 1.1 * k, 0.45 * k, 1);
+          if (ab > 0.2) beams.add(_v.x, _v.y, _v.z, _v.x + _f.x * len * 0.5, _v.y + _f.y * len * 0.5, _v.z + _f.z * len * 0.5, 0.45, 0, 2.6 * ab, 2.8 * ab, 3.6 * ab, 1);
+        }
       }
+      // Nav lights: red port, green starboard, white strobe.
+      if (d2 < 9e6) {
+        const t = this.s.renderTime + u.id * 0.37;
+        for (let i = 0; i < 2; i++) {
+          _v.copy(an.wingtips[i]).applyQuaternion(q).add(u.renderPos);
+          if (i === 0) glows.add(_v.x, _v.y, _v.z, 1.1, 3, 0.25, 0.2, 0.35);
+          else glows.add(_v.x, _v.y, _v.z, 1.1, 0.25, 3, 0.4, 0.35);
+          if (t % 1.3 < 0.08) glows.add(_v.x, _v.y, _v.z, 2.2, 4, 4, 4.5, 0.5);
+        }
+      }
+    } else {
+      _v.set(0, 0, u.def.radius * 0.95).applyQuaternion(q).add(u.renderPos);
+      const k = 0.4 + thr * 0.4 + ab;
+      glows.add(_v.x, _v.y, _v.z, 2 + ab * 3, 3 * k, 1.6 * k, 0.7 * k, 0.6);
     }
   }
 

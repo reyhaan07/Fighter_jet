@@ -10,6 +10,16 @@
 // clouds          number of cloud billboards
 // lights          pooled dynamic point lights for explosions
 // lodBias         multiplies LOD switch distances
+// trees           { radius (m) streamed around the camera, attempts (density) } or null
+// towns           number of towns (instanced buildings with night windows)
+// cloudPuffs      billboard puffs making up the cumulus clusters
+// godRays         screen-space light shafts from the sun (taps, 0 = off)
+// fxaa            post-process anti-aliasing (when MSAA is off)
+// flare           sun lens flare
+// heat            afterburner heat haze + speed blur
+// dust            air particles streaming past the camera (count)
+// contrails       vapour/contrail trails on every jet
+// lod0            distance (m) at which enemy jets switch to the full-detail model (0 = never)
 
 export const PRESETS = {
   low: {
@@ -28,6 +38,16 @@ export const PRESETS = {
     clouds: 40,
     lights: 0,
     lodBias: 0.6,
+    trees: null,
+    towns: 2,
+    cloudPuffs: 140,
+    godRays: 0,
+    fxaa: false,
+    flare: false,
+    heat: false,
+    dust: 0,
+    contrails: false,
+    lod0: 0,
     antialias: false,
   },
   medium: {
@@ -46,6 +66,16 @@ export const PRESETS = {
     clouds: 90,
     lights: 2,
     lodBias: 0.85,
+    trees: { radius: 2600, attempts: 60000 },
+    towns: 4,
+    cloudPuffs: 380,
+    godRays: 0,
+    fxaa: true,
+    flare: true,
+    heat: true,
+    dust: 500,
+    contrails: true,
+    lod0: 0,
     antialias: false,
   },
   high: {
@@ -64,6 +94,16 @@ export const PRESETS = {
     clouds: 150,
     lights: 3,
     lodBias: 1,
+    trees: { radius: 3800, attempts: 130000 },
+    towns: 6,
+    cloudPuffs: 750,
+    godRays: 24,
+    fxaa: false,
+    flare: true,
+    heat: true,
+    dust: 900,
+    contrails: true,
+    lod0: 140,
     antialias: false,
   },
   ultra: {
@@ -82,6 +122,16 @@ export const PRESETS = {
     clouds: 220,
     lights: 4,
     lodBias: 1.4,
+    trees: { radius: 5500, attempts: 240000 },
+    towns: 8,
+    cloudPuffs: 1300,
+    godRays: 40,
+    fxaa: false,
+    flare: true,
+    heat: true,
+    dust: 1500,
+    contrails: true,
+    lod0: 200,
     antialias: false,
   },
 };

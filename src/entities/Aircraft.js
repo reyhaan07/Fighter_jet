@@ -98,6 +98,26 @@ export class Aircraft extends Unit {
 
     if (this.loadout && this.disabled <= 0) this.loadout.update(dt, ctx, this.trigger);
 
+    // Contrails at altitude and wingtip vortices when pulling hard.
+    if (ctx.contrails) {
+      this.trailTimer = (this.trailTimer || 0) - dt;
+      if (this.trailTimer <= 0) {
+        this.trailTimer = this.isPlayer ? 0.03 : 0.07;
+        const near = this.isPlayer || this.pos.distanceToSquared(ctx.camera.position) < 2.5e7;
+        if (near) {
+          const alt = this.pos.y > 4200;
+          const pull = Math.abs(f.gForce) > 4.5 && f.speed > 160;
+          if (alt || pull) {
+            const span = (this.def.radius || 9) * 0.75;
+            for (let side = -1; side <= 1; side += 2) {
+              _tmp.set(side * span, 0, alt ? span * 0.6 : 2).applyQuaternion(this.quat).add(this.pos);
+              ctx.fx.contrail(_tmp.x, _tmp.y, _tmp.z, alt ? 1 : 0.6);
+            }
+          }
+        }
+      }
+    }
+
     // Damage smoke and fire.
     const hpf = this.hp / this.maxHp;
     if (hpf < 0.55) {

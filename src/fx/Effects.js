@@ -30,6 +30,8 @@ export class Effects {
     this.beams = new BeamBatch(4096, fogDensity);
     scene.add(this.smoke.mesh, this.fire.mesh, this.debris.mesh, this.glows.mesh, this.beams.mesh);
 
+    this.wrecks = [];
+    for (let i = 0; i < 24; i++) this.wrecks.push({ x: 0, y: 0, z: 0, size: 1, t: 0, life: 1, timer: 0 });
     // Timed beams (railgun trails, laser hits) stored in a fixed pool.
     this.timedBeams = [];
     for (let i = 0; i < 64; i++) this.timedBeams.push({ t: 0, life: 1, s: new THREE.Vector3(), e: new THREE.Vector3(), w: 1, r: 1, g: 1, b: 1 });
@@ -59,35 +61,97 @@ export class Effects {
   explosion(x, y, z, size = 12, { water = false, debris = true, ember = true } = {}) {
     const f = this.fire;
     const s = this.smoke;
-    const n = this._n(10 + size * 1.2);
+    // Textured fireball: churning flame puffs that expand and cool.
+    const n = this._n(12 + size * 1.4);
     for (let i = 0; i < n; i++) {
-      const sp = size * rand(0.6, 2.6);
-      const vx = rand(-1, 1) * sp;
-      const vy = rand(-0.6, 1) * sp;
-      const vz = rand(-1, 1) * sp;
-      f.emit(x, y, z, vx, vy, vz, rand(0.5, 1.1), size * 0.5, size * rand(1.4, 2.4), 3.2, 1.5, 0.45, 1, 3.5, -1.5, 0);
+      const sp = size * rand(0.5, 2.4);
+      const delay = Math.random() < 0.3 ? rand(0, 0.12) : 0;
+      f.emit(x, y, z, rand(-1, 1) * sp, rand(-0.5, 1.1) * sp, rand(-1, 1) * sp, rand(0.6, 1.3), size * 0.6, size * rand(1.6, 2.8), 3.6, 1.55, 0.42, 1, 3.2, -2, 1, delay);
     }
-    f.emit(x, y, z, 0, 0, 0, 0.25, size * 2, size * 4.5, 6, 5, 4, 1, 0, 0, 0); // flash
-    const sparks = this._n(8 + size);
+    // White-hot core and flash.
+    for (let i = 0; i < this._n(4); i++) f.emit(x, y, z, rand(-1, 1) * size, rand(-1, 1) * size, rand(-1, 1) * size, 0.35, size * 0.8, size * 2, 6, 5, 3.6, 1, 3, 0, 1);
+    f.emit(x, y, z, 0, 0, 0, 0.22, size * 2.4, size * 5, 6, 5, 4, 1, 0, 0, 0);
+    // Shockwave ring.
+    f.emit(x, y, z, 0, 0, 0, 0.45, size * 0.5, size * 9, 2.2, 2.0, 1.8, 0.9, 0, 0, 3);
+    // Sparks and burning fragments.
+    const sparks = this._n(10 + size);
     for (let i = 0; i < sparks; i++) {
-      const sp = size * rand(4, 9);
-      f.emit(x, y, z, rand(-1, 1) * sp, rand(-0.3, 1) * sp, rand(-1, 1) * sp, rand(0.5, 1.4), 0.6, 0.15, 4, 2.4, 1, 1, 1.2, 9.8, 2);
+      const sp = size * rand(4, 10);
+      f.emit(x, y, z, rand(-1, 1) * sp, rand(-0.2, 1.2) * sp, rand(-1, 1) * sp, rand(0.6, 1.8), 0.8, 0.2, 4, 2.4, 1, 1, 1, 9.8, 2);
     }
-    const sm = this._n(8 + size * 0.8);
+    // Rolling smoke, then a rising column for big blasts.
+    const sm = this._n(10 + size);
     for (let i = 0; i < sm; i++) {
-      const sp = size * rand(0.3, 1.2);
-      const c = water ? 0.85 : rand(0.08, 0.22);
-      s.emit(x, y, z, rand(-1, 1) * sp, rand(0, 1) * sp + 2, rand(-1, 1) * sp, rand(2.5, 5.5), size * 0.8, size * rand(2.5, 4), c, c, c * 1.04, water ? 0.7 : 0.85, 1.2, -2, 1);
+      const sp = size * rand(0.3, 1.3);
+      const c = water ? 0.62 : rand(0.06, 0.2);
+      s.emit(x, y, z, rand(-1, 1) * sp, rand(0, 1) * sp + 2, rand(-1, 1) * sp, rand(3, 7), size * 0.9, size * rand(3, 5), c, c, c * 1.05, water ? 0.75 : 0.85, 1.1, -2.5, 1, rand(0.05, 0.35));
+    }
+    if (size >= 14) {
+      for (let i = 0; i < this._n(6 + size * 0.3); i++) {
+        const c = water ? 0.55 : rand(0.05, 0.12);
+        s.emit(x + rand(-1, 1) * size * 0.3, y, z + rand(-1, 1) * size * 0.3, rand(-2, 2), rand(14, 26) + size * 0.4, rand(-2, 2), rand(6, 10), size * 0.8, size * 3.5, c, c, c, 0.7, 0.35, -1, 1, rand(0.3, 1.2));
+      }
+      // Secondary blasts.
+      for (let k = 0; k < Math.min(4, Math.floor(size / 12)); k++) {
+        const ox = x + rand(-1, 1) * size;
+        const oy = y + rand(-0.3, 1) * size;
+        const oz = z + rand(-1, 1) * size;
+        const d = rand(0.15, 0.7);
+        for (let i = 0; i < this._n(6); i++) f.emit(ox, oy, oz, rand(-1, 1) * size, rand(-0.5, 1) * size, rand(-1, 1) * size, rand(0.5, 0.9), size * 0.4, size * 1.6, 3.6, 1.5, 0.4, 1, 3, -2, 1, d);
+      }
     }
     if (water) this.splash(x, z, size * 1.5);
     if (debris) {
-      const d = this._n(4 + size * 0.5);
+      const d = this._n(5 + size * 0.6);
       for (let i = 0; i < d; i++) {
         const sp = size * rand(1.5, 4);
         this.debris.emit(x, y, z, rand(-1, 1) * sp, rand(0, 1.2) * sp, rand(-1, 1) * sp, rand(2, 5), rand(0.3, 1.2) * Math.min(3, 0.5 + size * 0.08), rand(0.6, 1.2), ember ? rand(0, 1) : 0);
       }
     }
     this.flash(x, y, z, size * 30, 0.35 + size * 0.01);
+  }
+
+  /** A burning wreck that smokes for a while (destroyed ground units, ships). */
+  wreck(x, y, z, size, life = 20) {
+    let w = this.wrecks[0];
+    for (const c of this.wrecks) {
+      if (c.t <= 0) {
+        w = c;
+        break;
+      }
+      if (c.t < w.t) w = c;
+    }
+    w.x = x;
+    w.y = y;
+    w.z = z;
+    w.size = size;
+    w.t = w.life = life;
+    w.timer = 0;
+  }
+
+  /** Foam wake behind a moving ship. */
+  wake(x, z, vx, vz, size) {
+    this.smoke.emit(x + rand(-1, 1) * size * 0.3, 1, z + rand(-1, 1) * size * 0.3, -vx * 0.2 + rand(-2, 2), 0.5, -vz * 0.2 + rand(-2, 2), rand(5, 8), size * 0.5, size * 2.5, 0.9, 0.93, 0.95, 0.5, 0.3, 0, 1);
+  }
+
+  contrail(x, y, z, scale = 1) {
+    this.smoke.emit(x, y, z, rand(-0.5, 0.5), rand(-0.5, 0.5), rand(-0.5, 0.5), rand(5, 9), 1.2 * scale, 7 * scale, 0.95, 0.96, 1, 0.32, 0.2, -0.1, 1);
+  }
+
+  /** Per-step emitters (wrecks). */
+  step(dt) {
+    for (const w of this.wrecks) {
+      if (w.t <= 0) continue;
+      w.t -= dt;
+      w.timer -= dt;
+      if (w.timer > 0) continue;
+      w.timer = 0.12;
+      const k = w.t / w.life;
+      const sz = w.size * (0.5 + k * 0.5);
+      if (Math.random() < 0.8 * k) this.fire.emit(w.x + rand(-1, 1) * sz * 0.3, w.y + sz * 0.2, w.z + rand(-1, 1) * sz * 0.3, rand(-1, 1), rand(3, 8), rand(-1, 1), rand(0.5, 1), sz * 0.45, sz * 0.15, 3.5, 1.4, 0.35, 1, 0.5, -3, 1);
+      const c = rand(0.04, 0.1);
+      this.smoke.emit(w.x, w.y + sz * 0.4, w.z, rand(-1, 1), rand(7, 12), rand(-1, 1), rand(6, 10), sz * 0.6, sz * 3.2, c, c, c, 0.75 * (0.4 + k * 0.6), 0.25, -0.6, 1);
+    }
   }
 
   /** Air burst of flak (AA guns). */
@@ -123,14 +187,15 @@ export class Effects {
 
   splash(x, z, size) {
     const s = this.smoke;
-    for (let i = 0; i < this._n(10 + size * 0.4); i++) {
-      s.emit(x + rand(-1, 1) * size * 0.3, 0.5, z + rand(-1, 1) * size * 0.3, rand(-1, 1) * size * 0.4, rand(1, 3) * size * 0.7, rand(-1, 1) * size * 0.4, rand(1.5, 3), size * 0.4, size * 1.2, 0.85, 0.9, 0.95, 0.8, 0.8, 9.8, 1);
+    for (let i = 0; i < this._n(6 + size * 0.2); i++) {
+      s.emit(x + rand(-1, 1) * size * 0.3, 0.5, z + rand(-1, 1) * size * 0.3, rand(-1, 1) * size * 0.3, rand(1, 3) * size * 0.6, rand(-1, 1) * size * 0.3, rand(1.2, 2.4), size * 0.25, size * 0.8, 0.8, 0.85, 0.9, 0.45, 0.8, 9.8, 1);
     }
   }
 
   // ── Trails ───────────────────────────────────────────────────────────
   missileTrail(x, y, z, vx, vy, vz, scale = 1, bright = 1) {
-    this.smoke.emit(x, y, z, vx * 0.05 + rand(-1, 1), vy * 0.05 + rand(-1, 1), vz * 0.05 + rand(-1, 1), rand(1.8, 3.2) * scale, 1.2 * scale, 6 * scale, 0.82, 0.82, 0.84, 0.55, 0.8, -0.6, 1);
+    const life = this.q > 0.8 ? rand(3, 5.5) : rand(1.8, 3.2);
+    this.smoke.emit(x, y, z, vx * 0.05 + rand(-1, 1), vy * 0.05 + rand(-1, 1), vz * 0.05 + rand(-1, 1), life * scale, 1.2 * scale, 7 * scale, 0.86, 0.86, 0.88, 0.55, 0.8, -0.6, 1);
     if (bright > 0) this.fire.emit(x, y, z, vx * 0.2, vy * 0.2, vz * 0.2, 0.08, 1.4 * scale, 0.4, 4, 2.2, 1, bright, 0, 0, 0);
   }
 

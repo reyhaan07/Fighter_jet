@@ -3,6 +3,9 @@ import { Sky } from './Sky.js';
 import { Terrain } from './Terrain.js';
 import { Water } from './Water.js';
 import { Clouds } from './Clouds.js';
+import { Forest } from './Forest.js';
+import { Towns } from './Towns.js';
+import { AirDust } from '../fx/AirDust.js';
 
 // Assembles the environment for one level: sky, lights, fog, reflections,
 // terrain, sea and clouds. Everything created here is disposed in dispose().
@@ -58,10 +61,19 @@ export class World {
       flatZones: env.flatZones || [],
     });
     scene.add(this.terrain.mesh);
-    this.water = new Water(this.sky, this.fogDensity);
+    this.water = new Water(this.sky, this.fogDensity, this.terrain);
     scene.add(this.water.mesh);
+    const time = env.time || 'day';
+    this.terrain.uniforms.uCloudShadow.value = time === 'day' ? 0.38 * Math.min(1.4, env.cloudiness ?? 1) : time === 'dusk' ? 0.2 : 0;
+    const shared = { terrain: this.terrain, quality, sky: this.sky, hemi: this.hemi, fogDensity: this.fogDensity, fogColor: scene.fog.color, seed: env.seed || 1 };
+    this.forest = new Forest(shared);
+    scene.add(this.forest.group);
+    this.towns = new Towns({ ...shared, count: quality.towns, night: time === 'night' ? 1 : time === 'dusk' ? 0.4 : 0 });
+    scene.add(this.towns.group);
+    this.dust = quality.dust ? new AirDust(quality.dust, this.sky) : null;
+    if (this.dust) scene.add(this.dust.points);
     this.clouds = new Clouds({
-      count: Math.round(quality.clouds * (env.cloudiness ?? 1)),
+      count: Math.round(quality.cloudPuffs * (env.cloudiness ?? 1)),
       sky: this.sky,
       fogDensity: this.fogDensity,
       base: env.cloudBase ?? 1900,
@@ -78,17 +90,26 @@ export class World {
     return this.terrain.surfaceAt(x, z);
   }
 
-  update(camera, time, focus) {
+  update(camera, time, focus, speed = 0, pixelRatio = 1) {
     this.sky.update(camera, time);
     this.water.update(camera, time);
     this.clouds.update(time);
+    this.terrain.update(time);
+    this.forest.update(camera, time);
+    this.dust?.update(speed, pixelRatio);
     // Shadow frustum follows the player's aircraft.
     this.sun.target.position.copy(focus);
     this.sun.position.copy(focus).addScaledVector(this.sunDir, 300);
   }
 
   dispose() {
-    this.scene.remove(this.sky.mesh, this.hemi, this.sun, this.sun.target, this.terrain.mesh, this.water.mesh, this.clouds.mesh);
+    this.scene.remove(this.sky.mesh, this.hemi, this.sun, this.sun.target, this.terrain.mesh, this.water.mesh, this.clouds.mesh, this.forest.group, this.towns.group);
+    if (this.dust) {
+      this.scene.remove(this.dust.points);
+      this.dust.dispose();
+    }
+    this.forest.dispose();
+    this.towns.dispose();
     this.sun.dispose();
     this.sun.shadow?.map?.dispose();
     this.sky.dispose();

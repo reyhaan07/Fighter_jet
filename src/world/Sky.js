@@ -65,6 +65,7 @@ export function createSkyMaterial() {
       uDisc: { value: 10 },
       uStars: { value: 0 },
       uCirrus: { value: 0.5 },
+      uMoon: { value: 0 },
       uTime: { value: 0 },
     },
     vertexShader: /* glsl */ `
@@ -76,7 +77,7 @@ export function createSkyMaterial() {
       }`,
     fragmentShader: /* glsl */ `
       uniform vec3 uZenith, uHorizon, uSunColor, uSunDir;
-      uniform float uSunStrength, uStars, uTime, uDisc, uCirrus;
+      uniform float uSunStrength, uStars, uTime, uDisc, uCirrus, uMoon;
       varying vec3 vDir;
       ${NOISE}
       void main() {
@@ -90,7 +91,16 @@ export function createSkyMaterial() {
         float band = exp(-abs(h - 0.02) * 7.0);
         col += sun * band * (0.03 + 0.18 * pow(mu, 6.0));
         col += sun * pow(mu, 80.0) * 0.25;
-        col += sun * smoothstep(0.9993, 0.9997, mu) * uDisc * smoothstep(-0.02, 0.01, h);
+        if (uMoon > 0.5) {
+          // Moon: a larger mottled disc with a soft halo.
+          float disc = smoothstep(0.99955, 0.99975, mu);
+          float mott = 0.75 + 0.25 * fbm(d.xz * 900.0);
+          col += vec3(0.85, 0.9, 1.0) * disc * mott * 2.2 + vec3(0.25, 0.3, 0.45) * pow(mu, 300.0) * 0.8;
+        } else {
+          col += sun * smoothstep(0.9993, 0.9997, mu) * uDisc * smoothstep(-0.02, 0.01, h);
+          // Mie halo around the sun and a warm horizon glow beneath it.
+          col += sun * pow(mu, 12.0) * 0.12 + sun * pow(mu, 4.0) * exp(-max(h, 0.0) * 6.0) * 0.1;
+        }
 
         vec2 cp = d.xz / max(d.y + 0.12, 0.05) * 1.4;
         float cir = smoothstep(0.5, 0.9, fbm(cp * vec2(0.6, 2.2) + uTime * 0.002));
@@ -135,6 +145,7 @@ export class Sky {
     u.uDisc.value = p.disc;
     u.uStars.value = p.stars;
     u.uCirrus.value = p.cirrus;
+    u.uMoon.value = name === 'night' ? 1 : 0;
   }
 
   get uniforms() {

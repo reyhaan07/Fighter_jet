@@ -16,10 +16,10 @@ export const TERRAIN_TYPES = {
 };
 
 const PALETTES = {
-  temperate: { sand: [0.62, 0.56, 0.42], low: [0.22, 0.32, 0.14], high: [0.16, 0.22, 0.11], rock: [0.36, 0.34, 0.31], snow: [0.9, 0.92, 0.95], snowLine: 1300, seabed: [0.12, 0.2, 0.22] },
-  alpine: { sand: [0.45, 0.42, 0.36], low: [0.2, 0.3, 0.13], high: [0.14, 0.2, 0.1], rock: [0.33, 0.32, 0.31], snow: [0.92, 0.94, 0.97], snowLine: 1150, seabed: [0.1, 0.16, 0.18] },
-  desert: { sand: [0.72, 0.58, 0.38], low: [0.68, 0.52, 0.33], high: [0.6, 0.43, 0.27], rock: [0.5, 0.36, 0.24], snow: [0.75, 0.62, 0.45], snowLine: 99999, seabed: [0.3, 0.28, 0.2] },
-  arctic: { sand: [0.55, 0.56, 0.58], low: [0.78, 0.8, 0.84], high: [0.86, 0.88, 0.92], rock: [0.32, 0.33, 0.36], snow: [0.95, 0.96, 0.99], snowLine: 300, seabed: [0.08, 0.14, 0.18] },
+  temperate: { sand: [0.62, 0.56, 0.42], low: [0.22, 0.32, 0.14], high: [0.16, 0.22, 0.11], rock: [0.36, 0.34, 0.31], snow: [0.9, 0.92, 0.95], snowLine: 1300, seabed: [0.12, 0.2, 0.22], fields: 1, trees: 1100 },
+  alpine: { sand: [0.45, 0.42, 0.36], low: [0.2, 0.3, 0.13], high: [0.14, 0.2, 0.1], rock: [0.33, 0.32, 0.31], snow: [0.92, 0.94, 0.97], snowLine: 1150, seabed: [0.1, 0.16, 0.18], fields: 0.6, trees: 1050 },
+  desert: { sand: [0.72, 0.58, 0.38], low: [0.68, 0.52, 0.33], high: [0.6, 0.43, 0.27], rock: [0.5, 0.36, 0.24], snow: [0.75, 0.62, 0.45], snowLine: 99999, seabed: [0.3, 0.28, 0.2], fields: 0.25, trees: 0 },
+  arctic: { sand: [0.55, 0.56, 0.58], low: [0.78, 0.8, 0.84], high: [0.86, 0.88, 0.92], rock: [0.32, 0.33, 0.36], snow: [0.95, 0.96, 0.99], snowLine: 300, seabed: [0.08, 0.14, 0.18], fields: 0, trees: 420 },
 };
 
 export class Terrain {
@@ -35,6 +35,7 @@ export class Terrain {
     this.heights = new Float32Array(res * res);
     this._generate();
     this.mesh = this._buildMesh();
+    this.depthTexture = this._buildDepthTexture();
   }
 
   /** Raw procedural height (only used while generating the grid). */
@@ -81,6 +82,11 @@ export class Terrain {
       const z = -half + j * cell;
       for (let i = 0; i < res; i++) heights[j * res + i] = this._height(-half + i * cell, z);
     }
+  }
+
+  /** Forest density (> 0.47 = woodland); shared with the instanced forest. */
+  forestAt(x, z) {
+    return fbm2(x / 2600 + 3.1, z / 2600 - 1.7, 3, this.seed + 909);
   }
 
   /** Bilinear height lookup matching the rendered grid. */
@@ -157,17 +163,16 @@ export class Terrain {
         const hu = heights[Math.min(res - 1, j + 1) * res + i];
         n.set(hl - hr, 2 * cell, hd - hu).normalize();
         nor.set([n.x, n.y, n.z], k * 3);
-        const slope = 1 - n.y;
         let c;
         if (h < 0) c = P.seabed;
-        else if (h < 18) c = P.sand;
         else {
-          const t = smoothstep(80, 700, h);
+          const t = smoothstep(60, 650, h);
           c = [lerp(P.low[0], P.high[0], t), lerp(P.low[1], P.high[1], t), lerp(P.low[2], P.high[2], t)];
-          const rock = smoothstep(0.12, 0.3, slope);
-          c = [lerp(c[0], P.rock[0], rock), lerp(c[1], P.rock[1], rock), lerp(c[2], P.rock[2], rock)];
-          const snow = smoothstep(P.snowLine - 120, P.snowLine + 150, h) * (1 - smoothstep(0.35, 0.55, slope));
-          c = [lerp(c[0], P.snow[0], snow), lerp(c[1], P.snow[1], snow), lerp(c[2], P.snow[2], snow)];
+          // Woodland reads as darker canopy from altitude.
+          if (P.trees && h > 14 && h < P.trees) {
+            const w = smoothstep(0.45, 0.58, this.forestAt(-half + i * cell, -half + j * cell)) * (1 - smoothstep(P.trees * 0.8, P.trees, h));
+            c = [lerp(c[0], c[0] * 0.5, w), lerp(c[1], c[1] * 0.72, w), lerp(c[2], c[2] * 0.55, w)];
+          }
         }
         col.set(c, k * 3);
       }
@@ -195,28 +200,95 @@ export class Terrain {
     geo.setIndex(new THREE.BufferAttribute(idx, 1));
     geo.computeBoundingSphere();
 
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
-    // World-space detail noise so the ground never looks like flat vertex colour.
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+    // Shader-side detail: rock strata on slopes, snow above the snow line,
+    // beaches and wet sand, field patchwork, close-range bump detail and
+    // cloud shadows drifting across the ground.
+    this.uniforms = {
+      uTime: { value: 0 },
+      uCloudShadow: { value: 0.35 },
+      uSnowLine: { value: P.snowLine },
+      uRock: { value: new THREE.Color().setRGB(...P.rock) },
+      uSnow: { value: new THREE.Color().setRGB(...P.snow) },
+      uSand: { value: new THREE.Color().setRGB(...P.sand) },
+      uFields: { value: P.fields ?? 1 },
+    };
+    const U = this.uniforms;
     mat.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, U);
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vTerrainPos;')
-        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTerrainPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        .replace('#include <common>', '#include <common>\nvarying vec3 vTerrainPos;\nvarying vec3 vTerrainN;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTerrainPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvTerrainN = normal;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nvarying vec3 vTerrainPos;\n${NOISE}`)
+        .replace(
+          '#include <common>',
+          `#include <common>
+          varying vec3 vTerrainPos;
+          varying vec3 vTerrainN;
+          uniform float uTime, uCloudShadow, uSnowLine, uFields;
+          uniform vec3 uRock, uSnow, uSand;
+          float gRock;
+          float gSnow;
+          ${NOISE}`,
+        )
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
           {
-            float d1 = fbm(vTerrainPos.xz * 0.004);
-            float d2 = vnoise(vTerrainPos.xz * 0.05);
-            float fields = step(0.55, hash12(floor(vTerrainPos.xz / 180.0))) * smoothstep(20.0, 60.0, vTerrainPos.y) * (1.0 - smoothstep(300.0, 500.0, vTerrainPos.y));
-            diffuseColor.rgb *= 0.78 + 0.4 * d1 + 0.12 * d2;
-            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.15, 1.1, 0.8), fields * 0.35);
-            diffuseColor.rgb *= mix(0.55, 1.0, smoothstep(-40.0, 0.0, vTerrainPos.y));
+            vec3 P = vTerrainPos;
+            vec3 N = normalize(vTerrainN);
+            float dist = length(P - cameraPosition);
+            float slope = 1.0 - N.y;
+            float n1 = fbm(P.xz * 0.0032);
+            float n2 = vnoise(P.xz * 0.045);
+            float n3 = vnoise(P.xz * 0.4) * (1.0 - smoothstep(250.0, 1400.0, dist));
+            vec3 base = diffuseColor.rgb * (0.72 + 0.5 * n1 + 0.14 * n2 + 0.1 * n3);
+            // Field patchwork on low, flat land.
+            vec2 cell = floor(P.xz / vec2(210.0, 160.0) + vec2(n1 * 1.5));
+            float field = hash12(cell);
+            float farmland = uFields * smoothstep(20.0, 50.0, P.y) * (1.0 - smoothstep(250.0, 420.0, P.y)) * (1.0 - smoothstep(0.04, 0.1, slope)) * step(0.35, hash12(floor(P.xz / 1400.0)));
+            vec3 crop = base * mix(vec3(1.25, 1.12, 0.62), vec3(0.75, 1.0, 0.7), step(0.5, field)) * (0.85 + 0.3 * hash12(cell + 7.0));
+            base = mix(base, crop, farmland * 0.75);
+            // Rock strata on steep slopes.
+            gRock = smoothstep(0.16 + n2 * 0.1, 0.3 + n2 * 0.1, slope);
+            float strata = 0.82 + 0.18 * sin(P.y * 0.32 + n1 * 7.0 + n2 * 2.0);
+            base = mix(base, uRock * strata * (0.78 + 0.45 * n2 + 0.15 * n3), gRock);
+            // Snow above the snow line, flat enough to stick.
+            gSnow = smoothstep(uSnowLine - 160.0 + n1 * 260.0, uSnowLine + 80.0 + n1 * 260.0, P.y) * (1.0 - smoothstep(0.32, 0.55, slope + n2 * 0.08));
+            base = mix(base, uSnow * (0.92 + 0.08 * n2), gSnow);
+            // Beaches, wet sand, and the dark seabed.
+            float beach = (1.0 - smoothstep(3.0, 12.0 + n2 * 10.0, P.y)) * (1.0 - gRock) * step(-2.0, P.y);
+            base = mix(base, uSand * (0.9 + 0.2 * n3), beach);
+            base *= mix(0.62, 1.0, smoothstep(-0.5, 2.5, P.y));
+            base *= mix(0.4, 1.0, smoothstep(-40.0, 0.0, P.y));
+            // Drifting cloud shadows.
+            float cs = smoothstep(0.5, 0.72, fbm(P.xz * 0.00021 + vec2(uTime * 0.0035, uTime * 0.0018)));
+            base *= 1.0 - cs * uCloudShadow;
+            diffuseColor.rgb = base;
+          }`,
+        )
+        .replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+          roughnessFactor = clamp(roughnessFactor - gSnow * 0.35 - (1.0 - smoothstep(-0.5, 2.0, vTerrainPos.y)) * 0.5, 0.25, 1.0);`,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+          {
+            float fade = 1.0 - smoothstep(150.0, 1600.0, length(vTerrainPos - cameraPosition));
+            if (fade > 0.001) {
+              vec2 q = vTerrainPos.xz * 0.055;
+              float h0 = vnoise(q) + 0.5 * vnoise(q * 2.7);
+              float hx = vnoise(q + vec2(0.35, 0.0)) + 0.5 * vnoise((q + vec2(0.35, 0.0)) * 2.7);
+              float hz = vnoise(q + vec2(0.0, 0.35)) + 0.5 * vnoise((q + vec2(0.0, 0.35)) * 2.7);
+              vec3 gW = vec3(hx - h0, 0.0, hz - h0) * (0.9 + gRock * 1.8) * (1.0 - gSnow * 0.6) * fade;
+              normal = normalize(normal - (viewMatrix * vec4(gW, 0.0)).xyz);
+            }
           }`,
         );
     };
-    mat.customProgramCacheKey = () => 'terrain-v1';
+    mat.customProgramCacheKey = () => 'terrain-v2';
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = 'terrain';
     mesh.receiveShadow = true;
@@ -224,7 +296,24 @@ export class Terrain {
     return mesh;
   }
 
+  /** Water depth (0 = shore, 1 = 40 m+) for shoreline foam and shallow colour. */
+  _buildDepthTexture() {
+    const { res, heights } = this;
+    const data = new Uint8Array(res * res);
+    for (let i = 0; i < data.length; i++) data[i] = Math.round(clamp(-heights[i] / 40, 0, 1) * 255);
+    const t = new THREE.DataTexture(data, res, res, THREE.RedFormat, THREE.UnsignedByteType);
+    t.magFilter = t.minFilter = THREE.LinearFilter;
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    t.needsUpdate = true;
+    return t;
+  }
+
+  update(time) {
+    this.uniforms.uTime.value = time;
+  }
+
   dispose() {
+    this.depthTexture.dispose();
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
   }

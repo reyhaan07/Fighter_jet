@@ -85,7 +85,8 @@ export class Game {
   }
 
   resolveQuality() {
-    const id = this.settings.quality === 'auto' ? this.detected.preset : this.settings.quality;
+    const forced = new URLSearchParams(location.search).get('quality');
+    const id = PRESETS[forced] ? forced : this.settings.quality === 'auto' ? this.detected.preset : this.settings.quality;
     const q = { ...PRESETS[id] };
     if (this.settings.renderScale) q.renderScale = this.settings.renderScale;
     return q;

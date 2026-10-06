@@ -12,6 +12,8 @@ export class ModelRegistry {
     this.jetMaterial = null;
     this.unitMaterial = null;
     this.capacity = { 'jet:viper': 96, 'jet:lancer': 96, 'jet:drone': 96 };
+    this.anchors = {}; // per jet model: nozzles, wingtips, ... (for plumes and nav lights)
+    this.lod0 = 0;
   }
 
   ensure(key) {
@@ -19,10 +21,14 @@ export class ModelRegistry {
     if (key.startsWith('jet:')) {
       const design = key.slice(4);
       this.jetMaterial ||= createJetInstanceMaterial();
+      const mid = buildJetGeometry(design, 1);
+      this.anchors[key] = mid.anchors;
       const levels = [
-        { geometry: buildJetGeometry(design, 1).geometry, material: this.jetMaterial, dist: 450 },
+        { geometry: mid.geometry, material: this.jetMaterial, dist: 450 },
         { geometry: buildJetGeometry(design, 2).geometry, material: this.jetMaterial, dist: 30000 },
       ];
+      // Full-detail model up close on High/Ultra.
+      if (this.lod0) levels.unshift({ geometry: buildJetGeometry(design, 0).geometry, material: this.jetMaterial, dist: this.lod0 });
       this.instanced.register(key, levels, this.capacity[key] || 48, false);
       this._own(levels);
       return;

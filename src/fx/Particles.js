@@ -83,7 +83,7 @@ const vertexShader = /* glsl */ `
     vec4 mv = viewMatrix * vec4(p, 1.0);
     float size = mix(aTime.z, aTime.w, 1.0 - (1.0 - t) * (1.0 - t));
     vec2 corner = position.xy;
-    if (aParams.w > 1.5) {
+    if (aParams.w > 1.5 && aParams.w < 2.5) {
       // Spark: stretch along the projected velocity.
       vec3 v = aVel * exp(-drag * age) - vec3(0.0, aParams.y * age, 0.0);
       vec3 vv = (viewMatrix * vec4(v, 0.0)).xyz;
@@ -121,6 +121,10 @@ const fragmentShader = /* glsl */ `
     float a;
     if (vKind > 0.5 && vKind < 1.5) {
       a = texture2D(uSmoke, vUv * 0.92 + vSeed * 0.05).a;
+    } else if (vKind > 2.5) {
+      // Shockwave ring.
+      float d = length(vUv - 0.5) * 2.0;
+      a = smoothstep(0.7, 0.92, d) * smoothstep(1.0, 0.93, d);
     } else {
       float d = length(vUv - 0.5) * 2.0;
       a = pow(clamp(1.0 - d, 0.0, 1.0), 1.6);
@@ -183,7 +187,7 @@ export class ParticleSystem {
     this.emitted = 0;
   }
 
-  emit(x, y, z, vx, vy, vz, life, size0, size1, r, g, b, a, drag, gravity, kind) {
+  emit(x, y, z, vx, vy, vz, life, size0, size1, r, g, b, a, drag, gravity, kind, delay = 0) {
     const i = this.head;
     this.head = (i + 1) % this.capacity;
     const o = i * STRIDE;
@@ -194,7 +198,7 @@ export class ParticleSystem {
     d[o + 3] = vx;
     d[o + 4] = vy;
     d[o + 5] = vz;
-    d[o + 6] = this.time;
+    d[o + 6] = this.time + delay;
     d[o + 7] = life;
     d[o + 8] = size0;
     d[o + 9] = size1;

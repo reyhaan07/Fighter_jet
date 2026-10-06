@@ -75,6 +75,7 @@ export class Combat {
     const size = u.def.explosion ?? Math.max(10, u.radius * 1.4);
     const water = u.kind === 'sea' || (p.y < 8 && s.world.heightAt(p.x, p.z) <= 0);
     s.fx.explosion(p.x, p.y, p.z, size, { water });
+    if (!u.isAir || p.y - s.world.surfaceAt(p.x, p.z) < 6) s.fx.wreck(p.x, Math.max(p.y, s.world.surfaceAt(p.x, p.z)), p.z, Math.min(30, size * 0.8), u.kind === 'sea' ? 35 : 22);
     s.audio?.explosion(p, size);
     const d = p.distanceTo(s.camera.position);
     s.cameraRig.shake(Math.min(0.9, (size * 10) / Math.max(d, 30)));

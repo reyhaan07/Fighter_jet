@@ -88,6 +88,14 @@ export class GroundUnit extends Unit {
       }
     }
     if (this.kind === 'sea') {
+      this.wakeTimer = (this.wakeTimer || 0) - dt;
+      if (this.wakeTimer <= 0 && this.vel.lengthSq() > 4) {
+        this.wakeTimer = 0.1;
+        _v.set(0, 0, this.radius * 0.6).applyQuaternion(this.quat).add(this.pos);
+        ctx.fx.wake(_v.x, _v.z, this.vel.x, this.vel.z, Math.min(30, this.radius * 0.35));
+        _v.set(0, 0, -this.radius * 0.7).applyQuaternion(this.quat).add(this.pos);
+        ctx.fx.wake(_v.x, _v.z, this.vel.x * 0.3, this.vel.z * 0.3, Math.min(20, this.radius * 0.2));
+      }
       this.pos.y = Math.sin(ctx.time * 0.5 + this.id) * 0.4;
       _q.setFromAxisAngle(_v.set(0, 0, 1), Math.sin(ctx.time * 0.4 + this.id) * 0.015);
       this.quat.setFromAxisAngle(AXIS_Y, this.yaw).multiply(_q);

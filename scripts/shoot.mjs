@@ -52,7 +52,7 @@ try {
 }
 const { mkdir } = await import('node:fs/promises');
 await mkdir(out, { recursive: true });
-const ctx = { page, out, shot: (name) => page.screenshot({ path: join(out, name + '.png') }) };
+const ctx = { page, out, shot: (name) => page.screenshot({ path: join(out, name + '.png'), timeout: 180000 }) };
 if (scenarioPath) {
   const mod = await import(resolve(scenarioPath));
   try {

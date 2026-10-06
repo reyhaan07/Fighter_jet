@@ -69,6 +69,7 @@ export class Session {
     this.hash = new SpatialHash({ cellSize: 250, buckets: 4096, capacity: 2048, largeRadius: 100 });
     this.instanced = new InstancedRenderer(scene, q.lodBias, q.shadows > 0);
     this.models = new ModelRegistry(this.instanced);
+    this.models.lod0 = q.lod0;
     this.fx = new Effects(scene, q, this.world);
     this.bullets = new Bullets(4096);
     this.ordnance = new Ordnance(this);
@@ -78,6 +79,8 @@ export class Session {
     this.warnings = new Warnings(this);
     this.targeting = new Targeting(this);
     this.cameraRig = new CameraRig(this.camera);
+    this.contrails = !!q.contrails;
+    this.hud?.reset();
 
     // Context handed to units/weapons (the session itself carries everything).
     this.ctx = this;
@@ -341,6 +344,7 @@ export class Session {
     if (cm) p.trigger.secondary = p.trigger.secondaryPressed = false;
     this.bullets.step(dt, this);
     this.ordnance.step(dt, this);
+    this.fx.step(dt);
     this.warnings.step(dt);
     this.mode?.step?.(dt);
     if (this.warnings.outOfBounds > 12 && p.alive) this.combat.hit(p, 20 * dt, null, p.pos.x, p.pos.y, p.pos.z);
@@ -379,7 +383,7 @@ export class Session {
     this.instanced.begin(this.camera);
     this.fx.glows.begin();
     this.fx.beams.begin();
-    this.entities.render(this.instanced, this.fx.glows, this.camera);
+    this.entities.render(this.instanced, this.fx.glows, this.camera, this.fx.beams);
     this.ordnance.render(alpha, this.instanced, this.fx.glows);
     this.bullets.render(alpha, this.fx.beams, this.fx.glows);
     this.mode?.render?.(dt, alpha);
@@ -388,13 +392,41 @@ export class Session {
     this.fx.glows.end();
     this.fx.beams.end();
 
-    this.world.update(this.camera, this.renderTime, p.renderPos);
+    this.world.update(this.camera, this.renderTime, p.renderPos, p.flight.speed, this.game.renderer.pixelRatio);
+    this._postFx(p);
     const blackout = Math.max(0, (p.flight.gForce - p.stats.maxG * 0.85) / (p.stats.maxG * 0.4));
     this._blackout = (this._blackout || 0) + (Math.min(0.8, blackout) - (this._blackout || 0)) * Math.min(1, dt * 2);
     this.game.renderer.setEffects(this._blackout, p.disabled > 0 ? 0.6 : 0);
     this.game.renderer.render(this.renderTime);
     this.hud?.draw(this, dt);
     this.audio?.update(this, dt);
+  }
+
+  /** Screen-space inputs for the sun shafts / lens flare and heat haze. */
+  _postFx(p) {
+    const r = this.game.renderer;
+    const cam = this.camera;
+    const sky = this.world.sky;
+    const sunDir = sky.uniforms.uSunDir.value;
+    _d.set(0, 0, -1).applyQuaternion(cam.quaternion);
+    const facing = _d.dot(sunDir);
+    _v.copy(cam.position).addScaledVector(sunDir, 1000).project(cam);
+    const sx = _v.x * 0.5 + 0.5;
+    const sy = _v.y * 0.5 + 0.5;
+    const onScreen = facing > 0 && sunDir.y > -0.05 ? Math.max(0, 1 - Math.max(Math.abs(_v.x), Math.abs(_v.y)) * 0.6) : 0;
+    const night = sky.uniforms.uMoon.value > 0.5;
+    r.setSun(sx, sy, night ? onScreen * 0.25 : onScreen, sky.uniforms.uSunColor.value);
+    // Heat haze behind the nozzles (not from the cockpit).
+    const ex = this.exhaust;
+    if (this.cameraRig.mode !== 'cockpit' && p.alive && ex.heatAnchor) {
+      _v.copy(ex.heatAnchor).applyQuaternion(p.renderQuat).add(p.renderPos);
+      const dist = _v.distanceTo(cam.position);
+      _v.project(cam);
+      _d.set(0, 0, 9 + p.flight.afterburner * 10).add(ex.heatAnchor).applyQuaternion(p.renderQuat).add(p.renderPos).project(cam);
+      const amount = _v.z < 1 ? 0.35 + p.flight.throttle * 0.4 + p.flight.afterburner * 0.6 : 0;
+      const speed = Math.max(0, (p.flight.speed - 230) / 170) * (this.cameraRig.mode === 'chase' ? 1 : 0.5);
+      r.setHeat(_v.x * 0.5 + 0.5, _v.y * 0.5 + 0.5, _d.x * 0.5 + 0.5, _d.y * 0.5 + 0.5, Math.min(0.08, Math.max(0.004, 6 / dist)), amount, Math.min(1, speed) * (0.4 + p.flight.afterburner * 0.6));
+    } else r.setHeat(0, 0, 0, 0, 0.01, 0, 0);
   }
 
   dispose() {

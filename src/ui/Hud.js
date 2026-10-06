@@ -55,6 +55,16 @@ export class Hud {
     this.canvas.height = Math.round(this.h * this.dpr);
   }
 
+  /** Forget messages and feedback from a previous level. */
+  reset() {
+    this.messages.length = 0;
+    this.feed.length = 0;
+    this.radioLine = null;
+    this.hitMarker = 0;
+    this.damageFlash = 0;
+    for (const n of this.numbers) n.t = 0;
+  }
+
   clear() {
     this.g.setTransform(1, 0, 0, 1, 0, 0);
     this.g.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -617,7 +627,7 @@ export class Hud {
     };
     if (lo.flares) {
       const h = lo.flares.hud();
-      line('FLARES [X]', h.ammo, false, '', null);
+      line('FLARES [X]', h.ammo === Infinity ? '∞' : h.ammo, false, '', null);
     }
     if (lo.defense) {
       const h = lo.defense.hud();

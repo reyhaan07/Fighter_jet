@@ -60,7 +60,13 @@ export class Mission {
     const s = this.s;
     const out = [];
     for (let i = 0; i < count; i++) {
-      const p = (spread > 0 && s.world.terrain.findSea(x, z, spread, this.rand)) || { x: x + i * 400, z };
+      // Search wider and wider until open water is found (ships never spawn on land).
+      let p = null;
+      for (const r of [Math.max(spread, 300), 4000, 8000, 14000]) {
+        p = s.world.terrain.findSea(x, z, r, this.rand);
+        if (p) break;
+      }
+      p ||= { x: x + i * 400, z };
       const opts = { objective, y: 0 };
       if (patrol) {
         const path = [];
