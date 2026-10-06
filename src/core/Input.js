@@ -31,6 +31,9 @@ export class Input {
     this.flying = false; // set by Game while a session runs unpaused
     this._capture = null;
     this._stepPressed = new Set();
+    // On-screen touch controls (src/ui/TouchControls.js) write here.
+    this.touch = Object.create(null); // action -> analog 0..1 while held
+    this.touchThrottle = -1; // slider position 0..1.1 (>1 = afterburner), -1 = untouched
 
     this._onKeyDown = (e) => {
       const tag = e.target?.tagName;
@@ -206,7 +209,7 @@ export class Input {
   value(action) {
     if (!this.enabled) return 0;
     const list = this.bindings[action];
-    let v = 0;
+    let v = this.touch[action] || 0;
     for (let i = 0; i < list.length; i++) {
       const c = this._codeValue(list[i]);
       if (c > v) v = c;
@@ -222,7 +225,18 @@ export class Input {
     if (!this.enabled) return false;
     const list = this.bindings[action];
     for (let i = 0; i < list.length; i++) if (this._stepPressed.has(list[i])) return true;
-    return false;
+    return this._stepPressed.has('@' + action);
+  }
+
+  /** A tap on an on-screen button: counts as a press of the action. */
+  touchPress(action) {
+    if (this.pending.length < 64) this.pending.push('@' + action);
+    this.lastDevice = 'touch';
+  }
+
+  /** Release every on-screen control (pause, menus). */
+  clearTouch() {
+    for (const k in this.touch) this.touch[k] = 0;
   }
 
   /** Drop queued presses (e.g. the Esc that closed a menu). */

@@ -485,12 +485,50 @@ export class WorldMap {
 
   _bind() {
     const c = this.canvas;
+    // Two fingers pinch-zoom around their midpoint (phones and tablets).
+    const pts = new Map();
+    const pinchState = () => {
+      const [a, b] = [...pts.values()];
+      const r = c.getBoundingClientRect();
+      return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top };
+    };
     c.addEventListener('pointerdown', (e) => {
-      this.drag = { x: e.clientX, y: e.clientY, vx: this.view.x, vy: this.view.y, moved: false };
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       c.setPointerCapture(e.pointerId);
+      if (pts.size === 2) {
+        const p = pinchState();
+        const [wx, wy] = this._toWorld(p.mx, p.my);
+        this.pinch = { d: p.d, z: this.view.z, wx, wy };
+        this.drag = null;
+        return;
+      }
+      if (pts.size > 2) return;
+      this.drag = { x: e.clientX, y: e.clientY, vx: this.view.x, vy: this.view.y, moved: false };
+    });
+    const lift = (e) => {
+      pts.delete(e.pointerId);
+      if (this.pinch && pts.size < 2) {
+        this.pinch = null;
+        this.drag = null;
+        this._afterPinch = true; // the finger left behind must not count as a tap
+      }
+    };
+    c.addEventListener('pointercancel', (e) => {
+      lift(e);
+      this.drag = null;
     });
     c.addEventListener('pointermove', (e) => {
       const r = c.getBoundingClientRect();
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pinch && pts.size >= 2) {
+        const p = pinchState();
+        this.view.z = Math.max(this.minZoom, Math.min(1.6, (this.pinch.z * p.d) / this.pinch.d));
+        this.view.x = this.pinch.wx - p.mx / this.view.z;
+        this.view.y = this.pinch.wy - p.my / this.view.z;
+        this.target = null;
+        this._clamp();
+        return;
+      }
       if (this.drag) {
         const dx = e.clientX - this.drag.x;
         const dy = e.clientY - this.drag.y;
@@ -505,6 +543,10 @@ export class WorldMap {
     });
     c.addEventListener('pointerup', (e) => {
       const r = c.getBoundingClientRect();
+      const wasPinch = !!this.pinch || this._afterPinch;
+      lift(e);
+      if (!pts.size) this._afterPinch = false;
+      if (wasPinch) return;
       if (this.drag && !this.drag.moved) {
         const i = this._pick(e.clientX - r.left, e.clientY - r.top);
         if (i >= 0) this.onSelect(LEVELS[i].id, i + 1 <= this.state.unlocked);

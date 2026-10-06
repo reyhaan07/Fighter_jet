@@ -147,6 +147,12 @@ export class PlayerController {
     }
     f.throttleTarget = clamp(f.throttleTarget + thr * dt * 0.7, 0, 1);
     if (thr < 0) this.abDetent = false;
+    // On-screen throttle slider: the top notch past 100 % is the afterburner.
+    if (inp.touchThrottle >= 0) {
+      f.throttleTarget = Math.min(1, inp.touchThrottle);
+      this.abDetent = inp.touchThrottle > 1.001;
+      inp.touchThrottle = -1;
+    }
     if (f.throttleTarget < 1) this.abDetent = false;
     c.ab = this.abDetent || inp.down('afterburner') || (f.throttleTarget >= 1 && inp.value('throttleUp') > 0.5 && inp.lastDevice === 'gamepad');
     c.brake = inp.down('airbrake');

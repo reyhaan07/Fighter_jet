@@ -15,6 +15,8 @@ import { Menus } from '../ui/Menus.js';
 import { Mission } from './modes/Mission.js';
 import { Survival } from './modes/Survival.js';
 import { FreeFlight } from './modes/FreeFlight.js';
+import { TouchControls } from '../ui/TouchControls.js';
+import { IS_TOUCH, IS_APP } from '../core/Platform.js';
 
 // Application shell: owns the renderer, input, audio, save data, menus and
 // the main loop, and swaps Sessions (levels) in and out. Every Session's GPU
@@ -27,12 +29,18 @@ export class Game {
     this.ui = ui;
     this.save = new Save();
     this.settings = loadSettings(this.save);
+    if (IS_TOUCH) {
+      // No mouse on a phone: the stick flies the jet directly, auto-level helps.
+      this.settings.mouseAim = false;
+      if (this.settings.autoLevel === undefined) this.settings.autoLevel = true;
+    }
     this.detected = detectPreset();
     this.quality = this.resolveQuality();
     this.renderer = new Renderer(canvas);
     this.input = new Input(canvas, this.settings.bindings);
     this.audio = new Audio(this.settings);
     this.hud = new Hud(hudCanvas, this.settings);
+    this.touch = IS_TOUCH ? new TouchControls(this) : null;
     this.daily = new Daily(this.save);
     this.daily.onComplete = (t) => {
       this.hud.message(`DAILY TASK DONE: ${t.text.toUpperCase()}`, 3.5, '#ffcf5a');
@@ -66,6 +74,7 @@ export class Game {
             if (this.input.pressed('pause')) this.pause();
           }
         } else this.hangar?.render(dt);
+        this.touch?.update(this.loading ? null : this.session);
         this.perf.frame(dt, performance.now() - t0);
       },
     });
@@ -78,7 +87,7 @@ export class Game {
     });
     canvas.addEventListener('click', () => {
       this.audio.unlock();
-      if (this.session && !this.paused && this.settings.mouseAim) this.input.requestPointerLock();
+      if (this.session && !this.paused && this.settings.mouseAim && !IS_TOUCH) this.input.requestPointerLock();
     });
     window.addEventListener('pointerdown', () => this.audio.unlock(), { once: true });
     window.addEventListener('keydown', () => this.audio.unlock(), { once: true });
@@ -164,7 +173,7 @@ export class Game {
     }
     this.menus.hide();
     this.audio.unlock();
-    if (this.settings.mouseAim) this.input.requestPointerLock();
+    if (this.settings.mouseAim && !IS_TOUCH) this.input.requestPointerLock();
   }
 
   async startSession(mission) {
@@ -219,7 +228,17 @@ export class Game {
     this.audio.suspendGame(false);
     this.input.flush();
     this.menus.hide();
-    if (this.settings.mouseAim) this.input.requestPointerLock();
+    if (this.settings.mouseAim && !IS_TOUCH) this.input.requestPointerLock();
+  }
+
+  /** Android back button. */
+  handleBack() {
+    if (this.loading) return;
+    if (this.session && !this.paused && !this.session.ended) return this.pause();
+    if (this.menus.capturing) return;
+    if (this.paused && this.menus.screen === 'pause') return this.resume();
+    if (this.menus.stack.length) return this.menus.back();
+    if (IS_APP) window.Capacitor?.Plugins?.App?.minimizeApp?.();
   }
 
   quitToMenu() {

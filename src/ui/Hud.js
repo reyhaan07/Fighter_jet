@@ -1,3 +1,4 @@
+import { IS_TOUCH } from '../core/Platform.js';
 import * as THREE from 'three';
 
 // Canvas-2D heads-up display drawn over the 3D view every frame:
@@ -29,6 +30,9 @@ export class Hud {
     this.canvas = canvas;
     this.g = canvas.getContext('2d');
     this.settings = settings;
+    // Phones: on-screen controls cover the corners, so the radar, weapon list
+    // and status move out of the way (the buttons show ammo themselves).
+    this.touch = IS_TOUCH;
     this.w = 1;
     this.h = 1;
     this.dpr = 1;
@@ -148,7 +152,7 @@ export class Hud {
     const cam = s.camera;
     const cx = this.w / 2;
     const cy = this.h / 2;
-    const scale = Math.min(1.25, Math.max(0.75, this.h / 900));
+    const scale = Math.min(1.25, Math.max(this.touch ? 0.85 : 0.75, this.h / 900));
     this.ui = scale;
 
     // Damage vignette.
@@ -177,7 +181,7 @@ export class Hud {
     this.drawTapes(s, cx, cy, scale);
     this.drawTargets(s, cam, dt);
     this.drawWarnings(s, cx, cy, scale);
-    this.drawWeapons(s, scale);
+    if (!this.touch) this.drawWeapons(s, scale);
     this.drawStatus(s, scale);
     this.drawRadar(s, scale);
     this.drawMessages(s, dt);
@@ -347,10 +351,11 @@ export class Hud {
     const f = p.flight;
     const speedKmh = f.speed * 3.6;
     const alt = p.pos.y;
-    const tapeH = 260 * k;
+    // Phones: shorter tapes closer to the centre, clear of the touch buttons.
+    const tapeH = (this.touch ? 150 : 260) * k;
     // Speed tape (left).
-    const lx = cx - 300 * k;
-    const rx = cx + 300 * k;
+    const lx = cx - (this.touch ? 230 : 300) * k;
+    const rx = cx + (this.touch ? 230 : 300) * k;
     g.strokeStyle = COL.dim;
     g.beginPath();
     g.moveTo(lx, cy - tapeH / 2);
@@ -390,8 +395,10 @@ export class Hud {
     this.text(String(Math.round(speedKmh)), lx - 12 * k, cy + 5 * k, 15 * k, COL.hud, 'right');
     this.box(rx + 8 * k, cy - 11 * k, 70 * k, 22 * k);
     this.text(String(Math.round(alt)), rx + 72 * k, cy + 5 * k, 15 * k, COL.hud, 'right');
-    this.text('KM/H', lx - 40 * k, cy - tapeH / 2 - 10 * k, 10 * k, COL.dim, 'center');
-    this.text('ALT M', rx + 40 * k, cy - tapeH / 2 - 10 * k, 10 * k, COL.dim, 'center');
+    if (!this.touch) {
+      this.text('KM/H', lx - 40 * k, cy - tapeH / 2 - 10 * k, 10 * k, COL.dim, 'center');
+      this.text('ALT M', rx + 40 * k, cy - tapeH / 2 - 10 * k, 10 * k, COL.dim, 'center');
+    }
     this.text(`M ${(f.speed / 340).toFixed(2)}`, lx - 40 * k, cy + tapeH / 2 + 18 * k, 11 * k, COL.dim, 'center');
     const gcol = Math.abs(f.gForce) > p.stats.maxG * 0.9 ? COL.warn : COL.dim;
     this.text(`G ${f.gForce.toFixed(1)}`, lx - 40 * k, cy + tapeH / 2 + 34 * k, 11 * k, gcol, 'center');
@@ -399,16 +406,18 @@ export class Hud {
     this.text(`VS ${vs >= 0 ? '+' : ''}${Math.round(vs)}`, rx + 40 * k, cy + tapeH / 2 + 18 * k, 11 * k, COL.dim, 'center');
     this.text(`R ${Math.round(Math.max(0, alt - ground))}`, rx + 40 * k, cy + tapeH / 2 + 34 * k, 11 * k, COL.dim, 'center');
 
-    // Throttle.
-    const tx = lx - 96 * k;
-    const th = 120 * k;
-    g.strokeStyle = COL.faint;
-    g.strokeRect(tx, cy - th / 2, 8 * k, th);
-    g.fillStyle = f.afterburner > 0.3 ? COL.warn : COL.dim;
-    const tv = Math.min(1, f.throttle) * 0.8 + f.afterburner * 0.2;
-    g.fillRect(tx, cy + th / 2 - th * tv, 8 * k, th * tv);
-    this.text(f.afterburner > 0.3 ? 'AB' : `${Math.round(f.throttleTarget * 100)}%`, tx + 4 * k, cy + th / 2 + 14 * k, 10 * k, f.afterburner > 0.3 ? COL.warn : COL.dim, 'center');
-    if (f.controls.brake) this.text('BRAKE', tx + 4 * k, cy - th / 2 - 8 * k, 10 * k, COL.warn, 'center');
+    // Throttle (phones show the on-screen slider instead).
+    if (!this.touch) {
+      const tx = lx - 96 * k;
+      const th = 120 * k;
+      g.strokeStyle = COL.faint;
+      g.strokeRect(tx, cy - th / 2, 8 * k, th);
+      g.fillStyle = f.afterburner > 0.3 ? COL.warn : COL.dim;
+      const tv = Math.min(1, f.throttle) * 0.8 + f.afterburner * 0.2;
+      g.fillRect(tx, cy + th / 2 - th * tv, 8 * k, th * tv);
+      this.text(f.afterburner > 0.3 ? 'AB' : `${Math.round(f.throttleTarget * 100)}%`, tx + 4 * k, cy + th / 2 + 14 * k, 10 * k, f.afterburner > 0.3 ? COL.warn : COL.dim, 'center');
+      if (f.controls.brake) this.text('BRAKE', tx + 4 * k, cy - th / 2 - 8 * k, 10 * k, COL.warn, 'center');
+    }
 
     // Heading tape (top).
     _f.set(0, 0, -1).applyQuaternion(p.renderQuat);
@@ -655,9 +664,9 @@ export class Hud {
   drawStatus(s, k) {
     const g = this.g;
     const p = s.player;
-    const x = 24 * k;
-    const y = this.h - 260 * k;
-    const w = 190 * k;
+    const x = this.touch ? 96 * k : 24 * k;
+    const y = this.touch ? 30 * k : this.h - 260 * k;
+    const w = (this.touch ? 140 : 190) * k;
     const hpf = p.hp / p.maxHp;
     this.text('HULL', x, y, 12 * k, COL.dim, 'left', 600, 'ui');
     g.fillStyle = COL.faint;
@@ -668,15 +677,15 @@ export class Hud {
     if (p.shieldActive > 0) this.text('SHIELD ACTIVE', x + 40 * k, y + 16 * k, 11 * k, COL.friend);
     // Score / objective line.
     const hdr = s.mode?.hudLines?.(s) || [];
-    let yy = 28 * k;
+    let yy = this.touch ? 62 * k : 28 * k;
     for (const line of hdr) {
-      this.text(line, 24 * k, yy, 14 * k, line.startsWith('!') ? COL.warn : COL.hud, 'left', 600, 'ui');
+      this.text(line, x, yy, (this.touch ? 13 : 14) * k, line.startsWith('!') ? COL.warn : COL.hud, 'left', 600, 'ui');
       yy += 18 * k;
     }
     // Wingmen.
     const wing = s.wingmen;
     if (wing?.length) {
-      let wy = y + 36 * k;
+      let wy = this.touch ? yy + 4 * k : y + 36 * k;
       const order = ['COVER', 'ATTACK', 'REGROUP'];
       for (const wm of wing) {
         const alive = wm.alive;
@@ -689,9 +698,9 @@ export class Hud {
   drawRadar(s, k) {
     const g = this.g;
     const p = s.player;
-    const R = 92 * k;
-    const cx = 24 * k + R;
-    const cy = this.h - 24 * k - R;
+    const R = (this.touch ? 62 : 92) * k;
+    const cx = this.touch ? this.w - 16 * k - R : 24 * k + R;
+    const cy = this.touch ? 64 * k + R : this.h - 24 * k - R;
     g.fillStyle = 'rgba(0,14,8,0.45)';
     g.beginPath();
     g.arc(cx, cy, R, 0, Math.PI * 2);
@@ -795,7 +804,7 @@ export class Hud {
     }
     for (const f of this.feed) {
       this.g.globalAlpha = Math.min(1, f.t);
-      this.text(f.text, this.w - 24 * k, fy, 13 * k, COL.hud, 'right', 600, 'ui');
+      this.text(f.text, this.w - (this.touch ? 170 : 24) * k, fy + (this.touch ? 52 * k : 0), 13 * k, COL.hud, 'right', 600, 'ui');
       fy += 18 * k;
     }
     this.g.globalAlpha = 1;

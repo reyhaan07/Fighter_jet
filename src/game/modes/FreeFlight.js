@@ -1,3 +1,4 @@
+import { IS_TOUCH } from '../../core/Platform.js';
 import * as THREE from 'three';
 import { TEAM } from '../../entities/Unit.js';
 
@@ -36,7 +37,7 @@ export class FreeFlight {
     }
     s.spawnWingmen(this.m.wingmen ?? 1);
     s.hud?.message('TRAINING RANGE — FREE FLIGHT', 4);
-    s.hud?.message('Drones and vehicles respawn. Press Esc for the menu.', 5, '#7fd4ff');
+    s.hud?.message(`Drones and vehicles respawn. ${IS_TOUCH ? 'Tap II' : 'Press Esc'} for the menu.`, 5, '#7fd4ff');
   }
 
   spawnDrone() {

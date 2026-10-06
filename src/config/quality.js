@@ -1,3 +1,5 @@
+import { IS_TOUCH } from '../core/Platform.js';
+
 // Graphics quality presets + hardware auto-detection.
 //
 // renderScale     multiplier on the (capped) device pixel ratio
@@ -159,6 +161,17 @@ export function detectPreset() {
   if (!gpu) return { preset: 'low', gpu: 'unknown (no WebGL2)' };
   const r = gpu.renderer.toLowerCase();
   if (/swiftshader|llvmpipe|softpipe|software|basic render/.test(r)) return { preset: 'low', gpu: gpu.renderer };
+  if (IS_TOUCH) {
+    // Phones and tablets: battery and heat matter more than a desktop. Recent
+    // flagship GPUs get Medium, everything else Low; adaptive resolution
+    // trims further if the frame rate drops.
+    const m = r.match(/adreno[^0-9]*(\d{3})/);
+    const flagship =
+      (m && +m[1] >= 650) ||
+      /mali-g7[1-9]|mali-g6[1-9]\d|immortalis|xclipse|apple gpu|apple a1[5-9]|apple m\d/.test(r) ||
+      (navigator.deviceMemory || 4) >= 8;
+    return { preset: flagship ? 'medium' : 'low', gpu: gpu.renderer };
+  }
   const cores = navigator.hardwareConcurrency || 4;
   const memory = navigator.deviceMemory || 8;
   const integrated = /intel|uhd|iris|mali|adreno|powervr|videocore|apple m1(?! (pro|max|ultra))/.test(r);

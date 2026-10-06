@@ -2,6 +2,7 @@ import { AIRCRAFT, AIRCRAFT_ORDER, PAINTS } from '../config/aircraft.js';
 import { LEVELS, CHAPTERS, levelById } from '../config/campaign.js';
 import { WorldMap } from './WorldMap.js';
 import { normalizeSave } from '../core/Save.js';
+import { IS_TOUCH } from '../core/Platform.js';
 import { WEAPONS, weaponsForSlot } from '../weapons/registry.js';
 import { UPGRADES, MAX_LEVEL } from '../config/upgrades.js';
 import { ACTIONS, describeCode } from '../config/controls.js';
@@ -107,7 +108,7 @@ export class Menus {
         <button data-act="leaderboard">Leaderboard</button>
         <button data-act="settings">Settings</button>
       </nav>
-      <div class="main-foot">${this.credits()}<span class="muted">F3 performance overlay · Esc pause</span></div>
+      <div class="main-foot">${this.credits()}${IS_TOUCH ? '' : '<span class="muted">F3 performance overlay · Esc pause</span>'}</div>
     </div>`;
   }
 
@@ -140,13 +141,15 @@ export class Menus {
         <div class="row">
           <div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === diff ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div>
         </div>
-        <div class="actions">
-          <button data-act="prevLevel">‹</button>
-          <button class="primary play-level" data-act="playLevel" ${locked ? 'disabled' : ''}>${locked ? 'Locked' : 'Play ›'}</button>
-          <button data-act="nextLevel">›</button>
+        <div class="brief-actions">
+          <div class="actions">
+            <button data-act="prevLevel">‹</button>
+            <button class="primary play-level" data-act="playLevel" ${locked ? 'disabled' : ''}>${locked ? 'Locked' : 'Play ›'}</button>
+            <button data-act="nextLevel">›</button>
+          </div>
+          <div class="actions"><button data-act="toHangar" data-launch="mission" ${locked ? 'disabled' : ''}>Change jet & weapons</button></div>
         </div>
-        <div class="actions"><button data-act="toHangar" data-launch="mission" ${locked ? 'disabled' : ''}>Change jet & weapons</button></div>
-        <p class="muted small">Click a level, then Play · drag to pan · scroll to zoom · double-click a level to fly it</p>
+        <p class="muted small">${IS_TOUCH ? 'Tap a level, then Play · drag to pan · pinch to zoom' : 'Click a level, then Play · drag to pan · scroll to zoom · double-click a level to fly it'}</p>
       </aside>
     </div>`;
   }
@@ -289,7 +292,13 @@ export class Menus {
           return `<div class="bindrow"><span>${esc(label)}</span><span class="binds">${kb.map((c, i) => btn(c, i, 'kb')).join('')}${btn(null, kb.length, 'kb').replace('—', '+')}${pad.map((c, i) => btn(c, i, 'pad')).join('')}${pad.length ? '' : btn(null, 0, 'pad').replace('—', '+ pad')}</span></div>`;
         }).join(''))
         .join('');
-      body = `
+      if (IS_TOUCH && !this.showKeys) {
+        body = `
+        ${toggle('autoLevel', 'Auto-level assist (levels the wings when you let go of the stick)')}
+        ${toggle('invertY', 'Invert pitch (drag down to climb, like a real stick)')}
+        <p class="muted small"><b>Touch controls:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge is the throttle; slide into the orange <b>AB</b> zone at the top for afterburner. Hold <b>GUN</b> to fire the cannon. Tap the blue weapon button to fire the selected weapon (missiles lock on by themselves when a target is in front of you). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
+        <div class="actions"><button data-act="showKeys">Keyboard &amp; gamepad bindings</button></div>`;
+      } else body = `
         ${toggle('mouseAim', 'Mouse-aim mode (mouse steers the aim, jet follows)')}
         ${toggle('autoLevel', 'Auto-level assist')}
         ${toggle('invertY', 'Invert Y (pitch)')}
@@ -381,6 +390,27 @@ export class Menus {
     const k = (id) => (b[id] || []).filter((c) => !c.startsWith('Pad:')).map(describeCode).join(' / ') || '—';
     const p = (id) => (b[id] || []).filter((c) => c.startsWith('Pad:')).map(describeCode).join(' / ') || '—';
     const rows = ACTIONS.map(([id, label]) => `<tr><td>${esc(label)}</td><td>${esc(k(id))}</td><td>${esc(p(id))}</td></tr>`).join('');
+    if (IS_TOUCH) {
+      const t = [
+        ['Fly (pitch and roll)', 'Drag anywhere on the left half of the screen: up climbs, down dives, sideways rolls'],
+        ['Throttle', 'Slider on the left edge; slide into the orange AB zone at the top for afterburner'],
+        ['Fire gun', 'Hold GUN (red)'],
+        ['Fire selected weapon', 'Tap the blue button (missiles lock on by themselves)'],
+        ['Next weapon', 'WPN'],
+        ['Flares', 'Hold FLR'],
+        ['Chaff / ECM / shield', 'DEF'],
+        ['Next target', 'TGT'],
+        ['Camera view', 'CAM'],
+        ['Wingman orders', 'WING (attack → cover → regroup)'],
+        ['Pause', 'II (top right) or the Back button'],
+      ];
+      return `
+    <div class="menu panel-layout narrow">
+      <header><button class="back" data-act="back">‹ Back</button><h2>Controls</h2></header>
+      <p class="muted small">Touch controls appear while you fly. Auto-level keeps the wings level when you let go of the stick. A Bluetooth game controller works too.</p>
+      <table class="lb help"><thead><tr><th>Action</th><th>Touch</th></tr></thead><tbody>${t.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table>
+    </div>`;
+    }
     return `
     <div class="menu panel-layout narrow">
       <header><button class="back" data-act="back">‹ Back</button><h2>Controls</h2></header>
@@ -616,6 +646,10 @@ export class Menus {
         });
         break;
       }
+      case 'showKeys':
+        this.showKeys = true;
+        this.render();
+        break;
       case 'resetBindings':
         g.input.resetBindings();
         g.settings.bindings = g.input.bindings;

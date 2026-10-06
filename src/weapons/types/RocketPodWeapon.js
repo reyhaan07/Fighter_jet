@@ -19,11 +19,12 @@ export class RocketPodWeapon extends Weapon {
 
   update(dt, ctx, trig) {
     this.status = this.cooldown > 0 ? 'RELOAD' : '';
-    if (!trig.held || this.cooldown > 0) {
+    if ((!trig.held && !trig.pressed) || this.cooldown > 0) {
       this.accum = 0;
       return;
     }
     this.accum += dt;
+    if (trig.pressed) this.accum = Math.max(this.accum, this.interval); // first rocket leaves on the press
     while (this.accum >= this.interval) {
       this.accum -= this.interval;
       if (!this.useAmmo(1)) {
