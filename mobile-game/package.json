@@ -1,0 +1,20 @@
+{
+  "name": "strike-wing-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Android build of Strike Wing (Capacitor wrapper around the same game code in ../src)",
+  "type": "module",
+  "scripts": {
+    "build:web": "cd .. && npx vite build --config mobile-game/vite.config.mjs",
+    "build": "npm run build:web && npx cap sync android",
+    "apk": "npm run build && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

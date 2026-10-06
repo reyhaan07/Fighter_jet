@@ -1,0 +1,77 @@
+# Builds the Android app (mobile-game/) into an installable APK and publishes it
+# as the "Android build" release, so it can be downloaded straight to a phone:
+#   https://github.com/<owner>/<repo>/releases/latest  →  StrikeWing.apk
+name: Android APK
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['src/**', 'public/**', 'index.html', 'package*.json', 'mobile-game/**', '.github/workflows/android-apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile-game/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix mobile-game
+
+      - name: Build game and sync into the Android project
+        run: npm run build --prefix mobile-game
+
+      - name: Build APK
+        working-directory: mobile-game/android
+        env:
+          APK_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/StrikeWing.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StrikeWing-apk
+          path: StrikeWing.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=android-latest
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" StrikeWing.apk \
+            --target "$GITHUB_SHA" \
+            --title "Strike Wing for Android (build ${{ github.run_number }})" \
+            --notes "Open this page on your Android phone, tap **StrikeWing.apk** to download, then open it to install (allow installing from your browser when Android asks). Built from ${GITHUB_SHA::7}." \
+            --latest

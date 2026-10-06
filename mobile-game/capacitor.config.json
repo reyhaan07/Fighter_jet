@@ -1,0 +1,11 @@
+{
+  "appId": "com.strikewing.game",
+  "appName": "Strike Wing",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#05070b",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
