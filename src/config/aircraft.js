@@ -117,9 +117,69 @@ export const AIRCRAFT = {
     radius: 10,
     camDistance: 28,
   },
+  kestrel: {
+    id: 'kestrel', name: 'T-7 Kestrel', role: 'Trainer', design: 'kestrel', price: 1500,
+    description: 'Forgiving light trainer. Slow, but it almost never stalls and turns tight at low speed. Light armour.',
+    hp: 75, maxSpeed: 260, thrust: 38, abThrust: 18, stallSpeed: 45, cornerSpeed: 150, pitchRate: 1.9, rollRate: 4.0, yawRate: 0.8,
+    maxG: 8, response: 7.5, induced: 0.06, brake: 0.04, radarRange: 7000, lockSpeed: 0.9, signature: 0.9, slots: 3, hardpointMult: 0.8, radius: 7, camDistance: 22,
+  },
+  falcon: {
+    id: 'falcon', name: 'F-16X Falcon', role: 'Light multirole', design: 'falcon', price: 4000,
+    description: 'Nimble single-engine multirole jet. Quick acceleration and good at both dogfights and strikes.',
+    hp: 95, maxSpeed: 335, thrust: 50, abThrust: 28, stallSpeed: 60, cornerSpeed: 185, pitchRate: 1.9, rollRate: 4.8, yawRate: 0.7,
+    maxG: 9, response: 7.5, induced: 0.07, brake: 0.035, radarRange: 9000, lockSpeed: 1.05, signature: 0.9, slots: 3, hardpointMult: 1.1, radius: 8, camDistance: 24,
+  },
+  viperE: {
+    id: 'viperE', name: 'F/A-41E Viper Elite', role: 'Upgraded fighter', design: 'viper', price: 10000,
+    description: 'Re-engined Viper with thrust vectoring: better turn, faster locks and tougher airframe.',
+    hp: 125, maxSpeed: 345, thrust: 50, abThrust: 32, stallSpeed: 58, cornerSpeed: 190, pitchRate: 2.15, rollRate: 4.6, yawRate: 0.85,
+    maxG: 10, response: 8, induced: 0.065, brake: 0.035, radarRange: 10000, lockSpeed: 1.2, signature: 0.9, slots: 3, hardpointMult: 1.1, radius: 9, camDistance: 26,
+  },
+  tempest: {
+    id: 'tempest', name: 'EF-30 Tempest', role: 'Canard delta', design: 'tempest', price: 11000,
+    description: 'Canard-delta fighter with superb roll rate and sustained turns. Strong all-rounder.',
+    hp: 115, maxSpeed: 360, thrust: 52, abThrust: 34, stallSpeed: 60, cornerSpeed: 195, pitchRate: 2.0, rollRate: 5.2, yawRate: 0.75,
+    maxG: 9.5, response: 8, induced: 0.06, brake: 0.035, radarRange: 11000, lockSpeed: 1.2, signature: 0.75, slots: 3, hardpointMult: 1.1, radius: 9, camDistance: 26,
+  },
+  griffin: {
+    id: 'griffin', name: 'Su-X Griffin', role: 'Forward-swept dogfighter', design: 'griffin', price: 14000,
+    description: 'Forward-swept wings give the highest pitch rate in service and 11 G structure. The dogfighter\'s dogfighter.',
+    hp: 120, maxSpeed: 350, thrust: 52, abThrust: 34, stallSpeed: 52, cornerSpeed: 180, pitchRate: 2.4, rollRate: 4.6, yawRate: 0.95,
+    maxG: 11, response: 8.5, induced: 0.07, brake: 0.04, radarRange: 10000, lockSpeed: 1.15, signature: 0.95, slots: 3, hardpointMult: 1, radius: 10, camDistance: 27,
+  },
+  titan: {
+    id: 'titan', name: 'F-111T Titan', role: 'Heavy bomber-fighter', design: 'titan', price: 16000,
+    description: 'Flying fortress of a fighter: 260 hull and double the ground ordnance. Turns like a bus, hits like a train.',
+    hp: 260, maxSpeed: 300, thrust: 42, abThrust: 30, stallSpeed: 62, cornerSpeed: 175, pitchRate: 1.25, rollRate: 2.6, yawRate: 0.5,
+    maxG: 7, response: 5, induced: 0.08, brake: 0.045, radarRange: 10000, lockSpeed: 1, signature: 1.3, slots: 3, hardpointMult: 2.0, radius: 12, camDistance: 32,
+  },
+  lancerX: {
+    id: 'lancerX', name: 'MiR-35X Lancer-X', role: 'Hypersonic interceptor', design: 'lancer', price: 18000,
+    description: 'Rebuilt Lancer: the fastest jet in the game with an 18 km radar and lightning-fast locks.',
+    hp: 125, maxSpeed: 440, thrust: 60, abThrust: 46, stallSpeed: 74, cornerSpeed: 230, pitchRate: 1.55, rollRate: 3.7, yawRate: 0.6,
+    maxG: 8.5, response: 6.5, induced: 0.06, brake: 0.03, radarRange: 18000, lockSpeed: 1.7, signature: 0.95, slots: 3, hardpointMult: 1, radius: 10, camDistance: 28,
+  },
+  raptor: {
+    id: 'raptor', name: 'F-22R Raptor', role: 'Air dominance', design: 'raptor', price: 20000,
+    description: 'Twin-engine air dominance fighter: fast, agile, stealthy and tough. Excellent at everything.',
+    hp: 150, maxSpeed: 380, thrust: 56, abThrust: 38, stallSpeed: 58, cornerSpeed: 200, pitchRate: 2.2, rollRate: 4.6, yawRate: 0.85,
+    maxG: 10, response: 8, induced: 0.06, brake: 0.035, radarRange: 13000, lockSpeed: 1.4, signature: 0.5, slots: 3, hardpointMult: 1.2, radius: 10, camDistance: 28,
+  },
+  specter: {
+    id: 'specter', name: 'B-X Specter', role: 'Flying-wing stealth', design: 'specter', price: 25000,
+    description: 'Tailless flying wing, nearly invisible to radar (20 % signature). Huge payload, gentle handling.',
+    hp: 140, maxSpeed: 320, thrust: 46, abThrust: 26, stallSpeed: 55, cornerSpeed: 180, pitchRate: 1.5, rollRate: 3.2, yawRate: 0.5,
+    maxG: 8, response: 6, induced: 0.06, brake: 0.04, radarRange: 12000, lockSpeed: 1.3, signature: 0.2, slots: 3, hardpointMult: 1.8, radius: 12, camDistance: 32,
+  },
+  valkyrie: {
+    id: 'valkyrie', name: 'EF-50 Valkyrie', role: 'Ultimate fighter', design: 'tempest', price: 32000,
+    description: 'The pinnacle: 420 m/s, 11 G, stealth coating and the best radar and seeker in the hangar.',
+    hp: 170, maxSpeed: 420, thrust: 62, abThrust: 44, stallSpeed: 55, cornerSpeed: 200, pitchRate: 2.35, rollRate: 5.4, yawRate: 0.9,
+    maxG: 11, response: 9, induced: 0.055, brake: 0.035, radarRange: 16000, lockSpeed: 1.6, signature: 0.45, slots: 3, hardpointMult: 1.3, radius: 9, camDistance: 27,
+  },
 };
 
-export const AIRCRAFT_ORDER = ['viper', 'hammer', 'wraith', 'lancer'];
+export const AIRCRAFT_ORDER = ['viper', 'kestrel', 'falcon', 'hammer', 'lancer', 'wraith', 'viperE', 'tempest', 'griffin', 'titan', 'lancerX', 'raptor', 'specter', 'valkyrie'];
 
 export const PAINTS = {
   gunmetal: { name: 'Gunmetal', color: 0x4c535c, price: 0 },

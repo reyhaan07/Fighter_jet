@@ -68,6 +68,90 @@ export const JET_DESIGNS = {
     nozzles: 2,
     stores: [3.4],
   },
+  // Light trainer / starter: small, single tail, straight-ish wing.
+  kestrel: {
+    fuselage: { width: 0.8, height: 0.95, length: 0.82 },
+    wing: { rootLE: [0.85, -0.05, -1.4], rootChord: 5.2, tipLE: [5.6, 0.0, 1.6], tipChord: 1.6 },
+    lerx: false,
+    stab: { rootLE: [0.9, 0.1, 4.6], rootChord: 2.4, tipLE: [3.3, 0.1, 5.8], tipChord: 1.0 },
+    tails: { count: 1, cant: 0, scale: 0.95, x: 0 },
+    canards: false,
+    ventral: false,
+    nozzles: 1,
+    stores: [3.0],
+  },
+  // Light multirole: single engine, LERX, single fin.
+  falcon: {
+    fuselage: { width: 0.88, height: 1.0, length: 0.95 },
+    wing: { rootLE: [1.0, 0.0, -1.2], rootChord: 6.4, tipLE: [6.2, 0.04, 3.4], tipChord: 1.3 },
+    lerx: true,
+    stab: { rootLE: [1.0, -0.02, 5.4], rootChord: 2.8, tipLE: [4.0, -0.02, 7.0], tipChord: 1.0 },
+    tails: { count: 1, cant: 0, scale: 1.1, x: 0 },
+    canards: false,
+    ventral: true,
+    nozzles: 1,
+    stores: [3.3, 5.0],
+  },
+  // Canard delta with twin canted fins (European style).
+  tempest: {
+    fuselage: { width: 0.95, height: 0.95, length: 1.05 },
+    wing: { rootLE: [1.1, -0.05, -1.8], rootChord: 9.2, tipLE: [6.6, -0.02, 6.0], tipChord: 1.1 },
+    lerx: false,
+    stab: null,
+    tails: { count: 2, cant: 18, scale: 0.95, x: 1.0 },
+    canards: true,
+    ventral: false,
+    nozzles: 2,
+    stores: [3.6],
+  },
+  // Forward-swept wing super-manoeuvrable fighter.
+  griffin: {
+    fuselage: { width: 1.05, height: 1.0, length: 1.08 },
+    wing: { rootLE: [1.25, 0.0, 0.6], rootChord: 6.2, tipLE: [7.4, 0.06, -0.9], tipChord: 2.0 },
+    lerx: true,
+    stab: { rootLE: [1.35, -0.02, 6.0], rootChord: 2.8, tipLE: [4.4, -0.02, 7.6], tipChord: 1.0 },
+    tails: { count: 2, cant: 14, scale: 1.0, x: 1.3 },
+    canards: true,
+    ventral: false,
+    nozzles: 2,
+    stores: [3.8],
+  },
+  // Big twin-engine air dominance fighter.
+  raptor: {
+    fuselage: { width: 1.15, height: 1.0, length: 1.12 },
+    wing: { rootLE: [1.4, 0.02, -2.2], rootChord: 8.4, tipLE: [7.8, 0.05, 3.4], tipChord: 1.5 },
+    lerx: true,
+    stab: { rootLE: [1.5, -0.02, 6.0], rootChord: 3.4, tipLE: [5.3, -0.02, 7.9], tipChord: 1.2 },
+    tails: { count: 2, cant: 28, scale: 1.1, x: 1.4 },
+    canards: false,
+    ventral: false,
+    nozzles: 2,
+    stores: [3.8, 5.8],
+  },
+  // Flying-wing stealth: no tails at all.
+  specter: {
+    fuselage: { width: 1.3, height: 0.7, length: 0.9, faceted: true },
+    wing: { rootLE: [1.0, 0.05, -5.2], rootChord: 12.5, tipLE: [9.6, 0.06, 3.2], tipChord: 2.4 },
+    lerx: false,
+    stab: null,
+    tails: { count: 0, cant: 0, scale: 1, x: 0 },
+    canards: false,
+    ventral: false,
+    nozzles: 2,
+    stores: [],
+  },
+  // Heavy long-range strike fighter with a wide body.
+  titan: {
+    fuselage: { width: 1.4, height: 1.2, length: 1.2 },
+    wing: { rootLE: [1.7, 0.0, -1.6], rootChord: 8.6, tipLE: [9.2, 0.02, 3.0], tipChord: 2.0 },
+    lerx: true,
+    stab: { rootLE: [1.8, -0.02, 6.6], rootChord: 3.6, tipLE: [6.0, -0.02, 8.4], tipChord: 1.5 },
+    tails: { count: 2, cant: 4, scale: 1.25, x: 1.6 },
+    canards: false,
+    ventral: true,
+    nozzles: 2,
+    stores: [3.6, 5.8, 7.6],
+  },
   // Enemy drone / training target: small single-engine airframe.
   drone: {
     fuselage: { width: 0.7, height: 0.7, length: 0.6 },
@@ -259,7 +343,7 @@ function buildParts(design, lod) {
       new THREE.Matrix4().makeTranslation(0, tailY + 0.2, 0).multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2)),
     );
     add(fin, 'body');
-  } else {
+  } else if (T.count === 2) {
     add(
       liftingSurface(tailDef).applyMatrix4(
         new THREE.Matrix4()
@@ -480,7 +564,7 @@ export function buildJet(designId, { paint = 0x4c535c, callsign = 'RS-01', panel
   );
   const markGeo = track(new THREE.PlaneGeometry(1.7 * tm.scale, 0.85 * tm.scale));
   const sides = tm.count === 1 ? [1, -1] : [-1, 1];
-  for (const side of sides) {
+  for (const side of tm.count === 0 ? [] : sides) {
     const c = tm.count === 1 ? 0 : tm.cant;
     const spanDir = new THREE.Vector3(side * Math.sin(c), Math.cos(c), 0);
     const normal = new THREE.Vector3(side * Math.cos(c), -Math.sin(c), 0);

@@ -212,3 +212,24 @@ table.help td { font-size: 13px; }
 
 .main-nav button.play { font-size: 30px; padding: 16px 20px; background: linear-gradient(180deg, #2f7fb4, #1e5d88); border-color: #6fc3ff; color: #fff; border-left-color: #fff; }
 .map-brief .play-level { flex: 1; font-size: 20px !important; padding: 12px !important; }
+
+/* Daily rewards */
+.badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 8px; border-radius: 11px; background: #ff5a4a; color: #fff; font: 700 13px var(--font-mono); }
+.daily h4 { font-size: 14px; color: var(--muted); letter-spacing: 0.2em; margin: 18px 0 10px; }
+.streak { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.day { position: relative; padding: 12px 6px; text-align: center; background: rgba(12, 18, 26, 0.75); border: 1px solid var(--line); }
+.day small { display: block; font: 600 11px var(--font-mono); color: var(--muted); letter-spacing: 0.1em; }
+.day b { font: 600 18px var(--font-mono); color: var(--accent-2); }
+.day.today { border-color: var(--accent-2); box-shadow: 0 0 18px rgba(255, 179, 90, 0.35); }
+.day.got { opacity: 0.55; }
+.day i { position: absolute; top: 4px; right: 6px; color: var(--hud); font-style: normal; }
+.day:last-child b { color: #ffd76a; }
+.tasks { display: flex; flex-direction: column; gap: 8px; }
+.task { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 12px 14px; background: rgba(12, 18, 26, 0.75); border: 1px solid var(--line); }
+.task b { font-size: 17px; }
+.task small { font: 500 12px var(--font-mono); color: var(--muted); }
+.task .bar { height: 6px; margin: 6px 0 4px; background: rgba(255, 255, 255, 0.08); }
+.task .bar i { display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--hud); }
+.task.done { border-color: var(--hud); }
+.task.claimed { opacity: 0.55; }
+.hangar .cards { max-height: 46vh; overflow-y: auto; }

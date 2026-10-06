@@ -181,7 +181,7 @@ export class Session {
         this.audio?.playerHit();
       }
     });
-    ev.on('kill', (u, killer) => {
+    ev.on('kill', (u, killer, cause) => {
       if (u.team === TEAM.ENEMY) {
         const byPlayer = killer === this.player || killer?.owner === this.player;
         if (byPlayer || killer?.isWingman) {
@@ -190,6 +190,10 @@ export class Session {
           this.creditsEarned += Math.round(u.credits * mult);
         }
         if (byPlayer) {
+          const daily = this.game.daily;
+          daily.track(u.isAir ? 'killAir' : u.kind === 'sea' ? 'killSea' : 'killGround');
+          if (['cannon20', 'cannon30', 'railgun'].includes(cause)) daily.track('gunKills');
+          if (u.def.role === 'boss' || u.def.role === 'carrier') daily.track('bossKill');
           this.kills++;
           this.stats.kills++;
           this.hud?.hit(true);
@@ -205,6 +209,7 @@ export class Session {
       if (u.isWingman) this.radio(u.callsign, "I'm hit! Ejecting!");
       this.mode?.onKill?.(u, killer);
     });
+    ev.on('playerFired', () => this.game.daily.track('missiles'));
     ev.on('decoyed', (o) => {
       if (o.target === this.player || o.team === TEAM.ENEMY) this.hud?.message('MISSILE DECOYED', 1.2, '#7fd4ff');
     });

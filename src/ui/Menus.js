@@ -101,7 +101,8 @@ export class Menus {
         <button class="play" data-act="campaign" data-autofocus>Play</button>
         <button data-act="survival">Survival</button>
         <button data-act="free">Free Flight · Training Range</button>
-        <button data-act="hangar">Hangar</button>
+        <button data-act="hangar">Hangar · Buy jets</button>
+        <button data-act="daily">Daily Rewards${this.game.daily.claimable ? ` <span class="badge">${this.game.daily.claimable}</span>` : ''}</button>
         <button data-act="leaderboard">Leaderboard</button>
         <button data-act="settings">Settings</button>
       </nav>
@@ -315,6 +316,37 @@ export class Menus {
     </div>`;
   }
 
+  _daily() {
+    const dy = this.game.daily;
+    const d = dy.d;
+    const days = [500, 750, 1000, 1500, 2000, 3000, 6000]
+      .map((amt, i) => {
+        const day = i + 1;
+        const state = day < d.streak || (day === d.streak && !dy.loginAvailable) ? 'got' : day === d.streak ? 'today' : '';
+        return `<div class="day ${state}"><small>Day ${day}</small><b>${fmt(amt)}</b>${state === 'got' ? '<i>✓</i>' : ''}</div>`;
+      })
+      .join('');
+    const tasks = d.tasks
+      .map((t, i) => {
+        const done = t.progress >= t.target;
+        return `<div class="task ${t.claimed ? 'claimed' : done ? 'done' : ''}">
+          <div><b>${esc(t.text)}</b><div class="bar"><i style="--v:${t.progress / t.target}"></i></div><small>${t.progress} / ${t.target}</small></div>
+          <button class="${done && !t.claimed ? 'primary' : ''}" data-act="claimTask" data-id="${i}" ${done && !t.claimed ? '' : 'disabled'}>${t.claimed ? 'Claimed' : `+${fmt(t.reward)} cr`}</button></div>`;
+      })
+      .join('');
+    return `
+    <div class="menu panel-layout narrow daily">
+      <header><button class="back" data-act="back">‹ Back</button><h2>Daily Rewards</h2>${this.credits()}</header>
+      <h4>Login streak · day ${d.streak} of 7</h4>
+      <div class="streak">${days}</div>
+      <div class="actions"><button class="primary" data-act="claimLogin" ${dy.loginAvailable ? 'data-autofocus' : 'disabled'}>${dy.loginAvailable ? `Claim ${fmt(dy.loginReward)} credits` : 'Come back tomorrow for more'}</button></div>
+      <p class="muted small">Log in on consecutive days to climb the streak. Miss a day and it starts again from day 1.</p>
+      <h4>Today's tasks</h4>
+      <div class="tasks">${tasks}</div>
+      <p class="muted small">New tasks every day at midnight. Spend credits in the Hangar on new jets, weapons, paints and upgrades.</p>
+    </div>`;
+  }
+
   _leaderboard() {
     const lb = this.save.leaderboard;
     const rows = lb.length
@@ -427,6 +459,21 @@ export class Menus {
       case 'leaderboard':
         this.show('leaderboard');
         break;
+      case 'daily':
+        this.show('daily');
+        break;
+      case 'claimLogin': {
+        const amt = g.daily.claimLogin();
+        if (amt) g.audio?.purchase();
+        this.render();
+        break;
+      }
+      case 'claimTask': {
+        const amt = g.daily.claimTask(+id);
+        if (amt) g.audio?.purchase();
+        this.render();
+        break;
+      }
       case 'settings':
         this.show('settings');
         break;

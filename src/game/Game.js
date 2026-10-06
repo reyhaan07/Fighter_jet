@@ -10,6 +10,7 @@ import { LEVELS, levelById } from '../config/campaign.js';
 import { loadSettings } from './Settings.js';
 import { Session } from './Session.js';
 import { Hud } from '../ui/Hud.js';
+import { Daily } from './Daily.js';
 import { Menus } from '../ui/Menus.js';
 import { Mission } from './modes/Mission.js';
 import { Survival } from './modes/Survival.js';
@@ -32,6 +33,11 @@ export class Game {
     this.input = new Input(canvas, this.settings.bindings);
     this.audio = new Audio(this.settings);
     this.hud = new Hud(hudCanvas, this.settings);
+    this.daily = new Daily(this.save);
+    this.daily.onComplete = (t) => {
+      this.hud.message(`DAILY TASK DONE: ${t.text.toUpperCase()}`, 3.5, '#ffcf5a');
+      this.audio.purchase();
+    };
     this.perf = new PerfMonitor(this, document.getElementById('perf'));
     this.menus = new Menus(this);
     this.session = null;
@@ -120,6 +126,7 @@ export class Game {
     this.hangar = new HangarScene(this);
     this.hangar.activate();
     this.menus.show('main', false);
+    if (this.daily.loginAvailable) this.menus.show('daily');
     this.loop.start();
     // Dev shortcuts: ?free, ?survival, ?mission=m3, ?stress, ?duel
     const qs = new URLSearchParams(location.search);
@@ -242,6 +249,11 @@ export class Game {
         result.next = LEVELS[idx + 1]?.id;
       }
     }
+    if (result.mode === 'campaign' && result.success) {
+      this.daily.track('wins');
+      if (['hard', 'ace'].includes(this.settings.difficulty)) this.daily.track('winHard');
+    }
+    if (result.mode === 'survival') this.daily.track('waves', result.wave || 0);
     if (result.mode === 'survival') {
       const lb = s.leaderboard;
       result.qualifies = lb.length < 10 || result.score > lb[lb.length - 1].score;
