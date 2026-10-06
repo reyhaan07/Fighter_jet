@@ -327,6 +327,14 @@ export class Session {
       if (input.pressed('fireSecondary') && cm.age > 0.5) this.ordnance.detonate(cm, null);
     }
 
+    // Wingtip vapour when pulling hard.
+    if (p.alive && p.flight.gForce > 5.5 && (this._vapor = !this._vapor)) {
+      for (const tip of this.anchors.wingtips) {
+        _v.copy(tip).applyQuaternion(p.quat).add(p.pos);
+        this.fx.vapor(_v.x, _v.y, _v.z, p.vel.x, p.vel.y, p.vel.z);
+      }
+    }
+
     this.targeting.step(dt);
     this.ai.step(dt);
     this.entities.step(dt, this);

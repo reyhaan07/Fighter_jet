@@ -26,10 +26,13 @@ export class Input {
     this.padAxes = new Float32Array(8);
     this.lastDevice = 'keyboard';
     this.enabled = true;
+    this.flying = false; // set by Game while a session runs unpaused
     this._capture = null;
     this._stepPressed = new Set();
 
     this._onKeyDown = (e) => {
+      const tag = e.target?.tagName;
+      if (!this._capture && (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')) return;
       if (this._capture) {
         e.preventDefault();
         if (e.code !== 'Escape') this._finishCapture(e.code);
@@ -106,7 +109,8 @@ export class Input {
   }
 
   _isGameKey(code) {
-    return this.enabled && this._gameKeys.has(code);
+    // Only swallow keys (e.g. Space, arrows) while actually flying.
+    return this.enabled && this.flying && this._gameKeys.has(code);
   }
 
   _pulse(code) {
@@ -206,6 +210,13 @@ export class Input {
     const list = this.bindings[action];
     for (let i = 0; i < list.length; i++) if (this._stepPressed.has(list[i])) return true;
     return false;
+  }
+
+  /** Drop queued presses (e.g. the Esc that closed a menu). */
+  flush() {
+    this.pending.length = 0;
+    this._stepPressed.clear();
+    this.mouseDX = this.mouseDY = 0;
   }
 
   /** Raw key press check outside the binding system (F3 etc.). */

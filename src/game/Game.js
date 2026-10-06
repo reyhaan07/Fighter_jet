@@ -48,6 +48,7 @@ export class Game {
       onRender: (dt, alpha) => {
         const t0 = performance.now();
         this.input.pollGamepad();
+        this.input.flying = !!this.session && !this.paused;
         if (this.session) {
           if (this.paused) {
             this.renderer.render(this.session.renderTime);
@@ -162,6 +163,7 @@ export class Game {
     this.loop.paused = false;
     this.session = new Session(this, mission);
     await this.session.build();
+    this.input.flush();
     this.audio.startEngine();
   }
 
@@ -199,6 +201,7 @@ export class Game {
     this.paused = false;
     this.loop.paused = false;
     this.audio.suspendGame(false);
+    this.input.flush();
     this.menus.hide();
     if (this.settings.mouseAim) this.input.requestPointerLock();
   }
