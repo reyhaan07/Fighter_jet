@@ -28,7 +28,7 @@ export class Mission {
     return { x: x + Math.cos(a) * r, z: z + Math.sin(a) * r };
   }
 
-  air(type, count, { x = 0, z = 0, alt = 1800, spread = 1000, objective = null, waypoint = null } = {}) {
+  air(type, count, { x = 0, z = 0, alt = 1800, spread = 1000, objective = null, waypoint = null, skill = 0 } = {}) {
     const s = this.s;
     const out = [];
     for (let i = 0; i < count; i++) {
@@ -38,7 +38,7 @@ export class Mission {
       // Face the player's start so fights begin quickly.
       const st = this.m.start;
       const yaw = Math.atan2(p.x - st.x, p.z - st.z);
-      const opts = { objective };
+      const opts = { objective, skill };
       if (waypoint) opts.waypoint = _v.set(waypoint.x + (p.x - x), waypoint.y ?? y, waypoint.z + (p.z - z));
       else if (type === 'heli') opts.waypoint = _v.set(p.x, y, p.z);
       out.push(s.entities.spawnAir(type, TEAM.ENEMY, p.x, y, p.z, yaw, opts));
@@ -118,7 +118,7 @@ export class Mission {
     return out;
   }
 
-  boss({ x, z, alt }) {
+  boss({ x, z, alt, hpMult = 1 }) {
     const s = this.s;
     const path = [];
     for (let k = 0; k < 8; k++) {
@@ -136,6 +136,7 @@ export class Mission {
     for (const [ex, ey, ez] of [[-62, -4, 22], [-30, -4, 30], [30, -4, 30], [62, -4, 22]]) {
       _v.set(ex, ey, ez);
       const e = s.entities.spawnGround('fortressEngine', TEAM.ENEMY, x, z, 0, { parent: b, offset: _v, y: alt, objective: 'engines' });
+      e.hp = e.maxHp = e.maxHp * hpMult;
       this.engines.push(e);
     }
     for (const [tx, ty, tz] of [[-80, 4, 0], [-45, 8, -20], [0, 15, -30], [45, 8, -20], [80, 4, 0], [0, -10, 20]]) {
@@ -144,6 +145,7 @@ export class Mission {
     }
     _v.set(0, 16, 5);
     this.core = s.entities.spawnGround('fortressCore', TEAM.ENEMY, x, z, 0, { parent: b, offset: _v, y: alt, objective: 'core' });
+    this.core.hp = this.core.maxHp = this.core.maxHp * hpMult;
     this.core.invulnerable = true;
     this.core.isTarget = false;
     this.objective('engines', 'Destroy the 4 engines', { kind: 'destroy', group: 'engines', count: 4 });

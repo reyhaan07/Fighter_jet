@@ -6,7 +6,7 @@ import { PerfMonitor } from '../core/PerfMonitor.js';
 import { Renderer } from '../world/Renderer.js';
 import { HangarScene } from '../world/HangarScene.js';
 import { PRESETS, detectPreset } from '../config/quality.js';
-import { MISSIONS } from '../config/missions.js';
+import { LEVELS, levelById } from '../config/campaign.js';
 import { loadSettings } from './Settings.js';
 import { Session } from './Session.js';
 import { Hud } from '../ui/Hud.js';
@@ -134,7 +134,7 @@ export class Game {
     const lo = this.save.data.loadout;
     let mission;
     if (what.kind === 'mission') {
-      const def = MISSIONS.find((m) => m.id === what.id) || MISSIONS[0];
+      const def = levelById(what.id) || LEVELS[0];
       mission = { id: def.id, def, mode: Mission, env: def.env, start: def.start, loadout: lo };
     } else if (what.kind === 'survival') {
       mission = { id: 'survival', mode: Survival, env: { time: 'day', terrain: 'islands', seed: 5 + Math.floor(Math.random() * 1000), cloudiness: 1 }, start: { x: 0, z: 4000, alt: 1600, yaw: 0 }, loadout: lo, wingmen: 1 };
@@ -231,15 +231,15 @@ export class Game {
     result.retry = this.lastMission?.retry;
     if (result.mode === 'campaign') {
       const c = s.campaign;
-      const idx = MISSIONS.findIndex((m) => m.id === result.missionId);
+      const idx = LEVELS.findIndex((m) => m.id === result.missionId);
       if (result.success) {
         c.completed[result.missionId] = true;
         c.bestScores[result.missionId] = Math.max(c.bestScores[result.missionId] || 0, result.score);
-        if (idx + 2 > c.unlocked && idx + 1 < MISSIONS.length) {
+        if (idx + 2 > c.unlocked && idx + 1 < LEVELS.length) {
           c.unlocked = idx + 2;
-          result.unlocked = MISSIONS[idx + 1].name;
+          result.unlocked = `Level ${idx + 2}: ${LEVELS[idx + 1].name}`;
         }
-        result.next = MISSIONS[idx + 1]?.id;
+        result.next = LEVELS[idx + 1]?.id;
       }
     }
     if (result.mode === 'survival') {

@@ -1,5 +1,6 @@
 import { AIRCRAFT, AIRCRAFT_ORDER, PAINTS } from '../config/aircraft.js';
-import { MISSIONS } from '../config/missions.js';
+import { LEVELS, CHAPTERS, levelById } from '../config/campaign.js';
+import { WorldMap } from './WorldMap.js';
 import { WEAPONS, weaponsForSlot } from '../weapons/registry.js';
 import { UPGRADES, MAX_LEVEL } from '../config/upgrades.js';
 import { ACTIONS, describeCode } from '../config/controls.js';
@@ -75,6 +76,7 @@ export class Menus {
     const fn = this['_' + this.screen];
     this.root.innerHTML = fn ? fn.call(this) : '';
     this.root.querySelector('[data-autofocus]')?.focus();
+    this._mountMap();
     if (!this.game.session) this._syncHangarJet();
   }
 
@@ -109,43 +111,66 @@ export class Menus {
 
   _campaign() {
     const c = this.save.campaign;
-    const sel = this.selectedMission || MISSIONS[Math.min(MISSIONS.length, c.unlocked) - 1].id;
+    const sel = this.selectedMission || LEVELS[Math.min(LEVELS.length, c.unlocked) - 1].id;
     this.selectedMission = sel;
-    const m = MISSIONS.find((x) => x.id === sel);
+    const m = levelById(sel) || LEVELS[0];
+    const idx = LEVELS.indexOf(m);
+    const locked = idx + 1 > c.unlocked;
     const diff = this.game.settings.difficulty;
-    const list = MISSIONS.map((mi, i) => {
-      const locked = i + 1 > c.unlocked;
-      const done = c.completed[mi.id];
-      return `<button class="mission ${mi.id === sel ? 'sel' : ''} ${locked ? 'locked' : ''}" data-act="pickMission" data-id="${mi.id}" ${locked ? 'disabled' : ''}>
-        <span class="num">${String(i + 1).padStart(2, '0')}</span>
-        <span class="mname">${esc(mi.name)}<small>${esc(mi.type)}</small></span>
-        <span class="mstate">${locked ? 'LOCKED' : done ? '✓' : ''}</span></button>`;
-    }).join('');
+    const done = Object.keys(c.completed).length;
     const rec = (m.recommended || []).map((id) => WEAPONS[id]?.short || id).join(' · ');
     return `
-    <div class="menu panel-layout">
-      <header><button class="back" data-act="back">‹ Back</button><h2>Campaign</h2>${this.credits()}</header>
-      <div class="cols">
-        <div class="col list">${list}</div>
-        <div class="col brief">
-          <div class="kicker">${esc(m.type)}</div>
-          <h3>${esc(m.name)}</h3>
-          <p>${esc(m.brief)}</p>
-          <dl>
-            <dt>Conditions</dt><dd>${esc(m.env.time)} · ${esc(m.env.terrain)}</dd>
-            <dt>Wingmen</dt><dd>${m.wingmen || 0}</dd>
-            <dt>Reward</dt><dd>${fmt(m.reward)} credits</dd>
-            <dt>Recommended</dt><dd>${esc(rec)}</dd>
-            ${c.bestScores[m.id] ? `<dt>Best score</dt><dd>${fmt(c.bestScores[m.id])}</dd>` : ''}
-          </dl>
-          <div class="row">
-            <label>Difficulty</label>
-            <div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === diff ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div>
-          </div>
-          <div class="actions"><button class="primary" data-act="toHangar" data-launch="mission">Loadout & Launch ›</button></div>
+    <div class="menu campaign-map">
+      <div class="mapwrap" id="worldmap"></div>
+      <header class="map-head"><button class="back" data-act="back">‹ Back</button><h2>Campaign</h2><span class="progress">${done} / ${LEVELS.length} levels</span>${this.credits()}</header>
+      <aside class="map-brief">
+        <div class="kicker">Chapter ${m.chapter + 1} · ${esc(CHAPTERS[m.chapter].name)}</div>
+        <h3><span class="lvl">${m.level}</span> ${esc(m.name)}</h3>
+        <div class="kicker type">${esc(m.type)}${m.boss ? ' · BOSS' : ''}</div>
+        <p>${esc(m.brief)}</p>
+        <dl>
+          <dt>Conditions</dt><dd>${esc(m.env.time)} · ${esc(m.env.terrain)}</dd>
+          <dt>Wingmen</dt><dd>${m.wingmen || 0}</dd>
+          <dt>Reward</dt><dd>${fmt(m.reward)} credits</dd>
+          <dt>Recommended</dt><dd>${esc(rec)}</dd>
+          ${c.bestScores[m.id] ? `<dt>Best score</dt><dd>${fmt(c.bestScores[m.id])}</dd>` : ''}
+        </dl>
+        <div class="row">
+          <div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === diff ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div>
         </div>
-      </div>
+        <div class="actions">
+          <button data-act="prevLevel">‹</button>
+          <button class="primary" data-act="toHangar" data-launch="mission" ${locked ? 'disabled' : ''}>${locked ? 'Locked' : 'Loadout & Launch ›'}</button>
+          <button data-act="nextLevel">›</button>
+        </div>
+        <p class="muted small">Drag to pan · scroll to zoom · double-click a level to fly it</p>
+      </aside>
     </div>`;
+  }
+
+  _mountMap() {
+    const host = this.root.querySelector('#worldmap');
+    if (!host) {
+      this.map?.unmount();
+      return;
+    }
+    if (!this.map) {
+      this.map = new WorldMap({
+        onSelect: (id) => {
+          this.selectedMission = id;
+          this.map.focus(id);
+          this.render();
+        },
+        onLaunch: (id) => {
+          this.selectedMission = id;
+          this.pending = { kind: 'mission', id };
+          this.show('hangar');
+        },
+      });
+    }
+    const c = this.save.campaign;
+    this.map.setState({ unlocked: c.unlocked, completed: c.completed, selected: this.selectedMission });
+    this.map.mount(host);
   }
 
   _hangar() {
@@ -408,6 +433,16 @@ export class Menus {
       case 'help':
         this.show('help');
         break;
+      case 'prevLevel':
+      case 'nextLevel': {
+        const i = LEVELS.findIndex((l) => l.id === this.selectedMission) + (act === 'nextLevel' ? 1 : -1);
+        if (i >= 0 && i < LEVELS.length) {
+          this.selectedMission = LEVELS[i].id;
+          this.map?.focus(this.selectedMission);
+          this.render();
+        }
+        break;
+      }
       case 'pickMission':
         this.selectedMission = id;
         this.render();

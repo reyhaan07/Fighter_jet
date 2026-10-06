@@ -2,6 +2,8 @@ import '@fontsource/barlow-condensed/400.css';
 import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/600.css';
+import '@fontsource/cinzel/400.css';
+import '@fontsource/cinzel/700.css';
 import './styles.css';
 import { Game } from './game/Game.js';
 import { installAtmosphere } from './world/Atmosphere.js';
@@ -17,6 +19,8 @@ async function boot() {
     await Promise.all([
       document.fonts.load('600 20px "Barlow Condensed"'),
       document.fonts.load('400 14px "JetBrains Mono"'),
+      document.fonts.load('700 40px "Cinzel"'),
+      document.fonts.load('400 24px "Cinzel"'),
     ]);
   } catch {
     /* fonts are optional */

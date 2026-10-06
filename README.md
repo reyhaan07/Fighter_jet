@@ -4,7 +4,7 @@ An **offline** 3D fighter-jet combat game for the browser and desktop, built wit
 
 It runs entirely on your own computer: no backend, no accounts, no hosting and no CDN. Fonts are bundled, every sound is synthesised in the browser, and every model is generated from code. The player jet, sky, clouds, afterburner, panel-line shader and post-processing come from [reyhaan07/3D-portfolio](https://github.com/reyhaan07/3D-portfolio) (`src/scene/...`) and were extended for the game.
 
-- **Campaign:** 10 missions (air superiority, ground strike, escort, bomber intercept, anti-ship, night strike, close air support, an ace squadron, a carrier strike, and a boss fight against a giant flying fortress with weak points).
+- **Campaign:** 100 levels in 10 chapters, chosen on an old parchment world map. Chapter 1 is a hand-made story (air superiority, ground strike, escort, bomber intercept, anti-ship, night strike, close air support, an ace squadron, a carrier strike, and a boss fight against a giant flying fortress with weak points). Chapters 2–10 are generated from mission templates and get steadily harder; every 10th level is a carrier, ace or fortress boss fight.
 - **Survival:** endless waves that keep getting harder, with a local leaderboard.
 - **Free flight:** a training range with target drones that respawn and unlimited ammo.
 - **4 jets, 20+ weapons**, a hangar to choose loadout and paint, and upgrades bought with credits.
@@ -30,7 +30,7 @@ After `npm install`, everything works with the network cable unplugged. `dist/` 
 
 > Click the game view to capture the mouse (pointer lock). Press **Esc** to release it and pause. Browsers only start audio after your first click or key press.
 
-Developer shortcuts (append to the URL): `?free`, `?survival`, `?mission=m4`, `?duel` (one bandit), `?stress` (stress test).
+Developer shortcuts (append to the URL): `?free`, `?survival`, `?mission=m4` or `?mission=L57`, `?duel` (one bandit), `?stress` (stress test), `?quality=ultra`.
 
 ---
 
@@ -135,6 +135,19 @@ Progress, settings and the leaderboard are saved automatically in `localStorage`
 
 ---
 
+## Graphics
+
+Every feature below scales with the quality preset (Low → Ultra):
+
+- **Terrain:** rock strata on slopes, snow lines, beaches and wet sand, farmland patchwork, close-range bump detail and drifting cloud shadows. Mountain shadows and ambient occlusion are baked once per mission from the sun's direction, so they cost nothing per frame.
+- **Forests and towns:** tens of thousands of instanced trees (two LODs, streamed around the camera), and towns whose windows light up at dusk and night.
+- **Ocean:** wave normals, turquoise shallows, surf along every coastline, sun glitter and ship wakes.
+- **Sky:** cumulus clouds with sunlit tops and silver linings, a moon at night, and atmospheric haze that pools in valleys, clears at altitude and glows toward the sun.
+- **Post-processing:** sun shafts and lens flare (blocked by terrain, clouds and aircraft), bloom, afterburner heat haze, speed blur, a filmic colour grade, and FXAA or MSAA anti-aliasing.
+- **Effects:** textured fireballs, shockwave rings, secondary blasts, rising smoke columns, burning wrecks, contrails, wingtip vortices, vapour cones near Mach 1, and afterburner plumes and blinking nav lights on every jet.
+
+---
+
 ## Performance
 
 The game is built to hold 60 FPS on a mid-range laptop with integrated graphics.
@@ -169,7 +182,8 @@ Measured headlessly in this repo's CI-like container (Chromium with the SwiftSha
 
 | Scene | Sim CPU per 60 Hz step | Render CPU per frame | Draw calls |
 |---|---|---|---|
-| 72 enemies, ~1,800 bullets, 18k particles | 0.47 ms avg, 0.7 ms max | ~2.5 ms | ~30 |
+| Low preset: 72 enemies, ~1,800 bullets, 18k particles | 0.47 ms avg, 0.7 ms max | ~2.5 ms | ~30 |
+| High preset (forests, towns, plumes, contrails): same fight | 0.59 ms avg, 1.0 ms max | ~3.7 ms | ~54 (0.77M triangles) |
 
 These are CPU numbers. A software renderer cannot measure GPU frame rate, so check real FPS with `?stress` and F3 on your own hardware.
 
@@ -238,6 +252,37 @@ npm run build && QS=?duel node scripts/shoot.mjs shots scripts/weapons-scenario.
 
 ---
 
+## Play online (free hosting)
+
+The build is a plain static site (`dist/`), so any free static host works. It still runs fully client-side; hosting only serves the files.
+
+### Cloudflare Pages (recommended for India: lowest latency)
+
+Cloudflare has edge servers in Mumbai, New Delhi, Chennai, Bengaluru, Hyderabad, Kolkata and other Indian cities, so players there get the files from nearby.
+
+1. Push this repository to GitHub.
+2. Go to <https://dash.cloudflare.com> → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**, and pick the repository.
+3. Set **Build command** to `npm run build` and **Build output directory** to `dist`. Leave the framework preset as "None".
+4. Click **Save and Deploy**. You get a free `https://<name>.pages.dev` URL, and every push redeploys. `public/_headers` makes browsers cache the game assets for fast repeat visits.
+
+No-Git alternative: run `npm run build`, then drag the `dist` folder onto **Workers & Pages → Create → Pages → Upload assets**.
+
+### GitHub Pages (simplest, already wired up)
+
+`.github/workflows/deploy-pages.yml` builds and publishes the game on every push to `main`.
+
+1. Repository **Settings → Pages → Source: GitHub Actions** (one time).
+2. Merge to `main` (or run the workflow manually from the **Actions** tab).
+3. The game appears at `https://<user>.github.io/<repo>/`. The relative `base: './'` in `vite.config.js` makes it work from that sub-path.
+
+GitHub Pages is served through a global CDN with Indian locations too, though Cloudflare usually has the edge in India.
+
+### Others
+
+Netlify and Vercel free plans also work: build command `npm run build`, output `dist`.
+
+---
+
 ## Desktop app (double-click to play)
 
 ### Tauri (recommended: small, about 10 MB)
@@ -273,7 +318,8 @@ src/
   main.js               entry: self-hosted fonts, boot
   core/                 Loop (fixed timestep), Input (remappable kb/mouse/gamepad), Audio (procedural
                         Web Audio), Pool, SpatialHash, PerfMonitor (F3 + adaptive), Save, math helpers
-  config/               aircraft, enemies, missions, quality presets, controls, difficulty, upgrades,
+  config/               aircraft, enemies, missions + campaign (100 levels), quality presets, controls,
+                        difficulty, upgrades,
                         weapons/*.js (one file per weapon)
   entities/             Unit, Aircraft + FlightModel, PlayerController, GroundUnit, Helicopter,
                         EntityManager, InstancedRenderer (LOD instancing)
@@ -281,11 +327,12 @@ src/
     projectiles/        Bullets (SoA, swept raycasts), Ordnance (missiles, bombs, drones, decoys)
     models/             procedural jets (from the portfolio), units, ships, boss, ordnance
   weapons/              Weapon base, Loadout, registry (auto-discovers config + classes), types/*.js
-  world/                Sky, Clouds, Terrain, Water, World, HangarScene, Renderer (post-processing)
+  world/                Sky, Clouds, Terrain, Water, Forest, Towns, Atmosphere, World, HangarScene,
+                        Renderer (post-processing)
   fx/                   GPU particles, debris, glow and beam batches, afterburner, Effects facade
   game/                 Game (app shell), Session (one level), Combat, CameraRig, Targeting,
                         Warnings, Settings, modes/ (Mission, Survival, FreeFlight)
-  ui/                   Hud (canvas 2D), Menus (DOM)
+  ui/                   Hud (canvas 2D), Menus (DOM), WorldMap (parchment campaign map)
 src-tauri/              Tauri v2 desktop shell
 electron/               Electron desktop shell
 scripts/                headless smoke tests, stress benchmark, icon generator
