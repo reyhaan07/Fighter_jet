@@ -1,0 +1,60 @@
+:root {
+  --hud: #8dffb5;
+  --hud-dim: rgba(141, 255, 181, 0.55);
+  --warn: #ffcf5a;
+  --danger: #ff5a4a;
+  --bg: #070a0f;
+  --panel: rgba(10, 16, 24, 0.86);
+  --panel-solid: #0d141d;
+  --line: rgba(160, 200, 230, 0.18);
+  --text: #dfe8f1;
+  --muted: #8796a8;
+  --accent: #6fc3ff;
+  --accent-2: #ffb35a;
+  --font-ui: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas#game, canvas#hud {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+canvas#hud { pointer-events: none; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui > * { pointer-events: auto; }
+#boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 600 22px var(--font-ui);
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  background: var(--bg);
+}
+#perf {
+  position: fixed;
+  left: 8px;
+  top: 8px;
+  padding: 6px 9px;
+  font: 11px/1.45 var(--font-mono);
+  color: #cfe;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: pre;
+  pointer-events: none;
+  z-index: 50;
+}

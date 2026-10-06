@@ -1,0 +1,25 @@
+{
+  "name": "fighter-jet",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Offline 3D fighter-jet combat game (Three.js + Vite)",
+  "scripts": {
+    "dev": "vite --open",
+    "build": "vite build",
+    "play": "vite build && vite preview --open",
+    "preview": "vite preview",
+    "stress": "node scripts/stress.mjs",
+    "desktop:tauri": "npm run build && npx --yes @tauri-apps/cli@2 build",
+    "desktop:tauri:dev": "npx --yes @tauri-apps/cli@2 dev",
+    "desktop:electron": "npm run build && npx --yes electron@33 electron/main.cjs"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.2"
+  }
+}
