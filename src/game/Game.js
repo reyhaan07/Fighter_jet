@@ -6,6 +6,7 @@ import { PRESETS, detectPreset } from '../config/quality.js';
 import { loadSettings } from './Settings.js';
 import { Session } from './Session.js';
 import { Hud } from '../ui/Hud.js';
+import { PerfMonitor } from '../core/PerfMonitor.js';
 
 // Application shell: owns the renderer, input, save data and the main loop,
 // and swaps Sessions (levels) in and out.
@@ -23,9 +24,27 @@ export class Game {
     this.input = new Input(canvas, this.settings.bindings);
     this.session = null;
     this.hud = new Hud(hudCanvas, this.settings);
+    this.perf = new PerfMonitor(this, document.getElementById('perf'));
     this.loop = new Loop({
-      onStep: (dt) => this.session?.step(dt),
-      onRender: (dt, alpha) => this.session?.render(dt, alpha),
+      fpsCap: this.settings.targetFps,
+      onStep: (dt) => {
+        if (!this.session) return;
+        this.perf.beginStep();
+        this.session.step(dt);
+        this.perf.endStep();
+      },
+      onRender: (dt, alpha) => {
+        const t0 = performance.now();
+        if (this.session) this.session.render(dt, alpha);
+        else this.menuScene?.render(dt);
+        this.perf.frame(dt, performance.now() - t0);
+      },
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'F3') {
+        e.preventDefault();
+        if (!this.session) this.perf.toggle();
+      }
     });
     window.addEventListener('resize', () => this.renderer.resize());
     canvas.addEventListener('click', () => {

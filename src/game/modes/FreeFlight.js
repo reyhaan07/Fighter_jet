@@ -70,7 +70,7 @@ export class FreeFlight {
     const s = this.s;
     if (this.stress) {
       // Keep 500+ rounds in the air: every enemy sprays its gun.
-      for (const u of s.entities.air) if (u.team === TEAM.ENEMY && u.alive && u.trigger) u.trigger.gun = true;
+      for (const u of s.entities.air) if (u.team === TEAM.ENEMY && u.alive) u.forceGun = true;
       if (s.entities.counts.enemiesAlive < 50) {
         this.respawn -= dt;
         if (this.respawn <= 0) {

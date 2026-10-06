@@ -113,7 +113,7 @@ export class Session {
     const player = (this.player = new Aircraft());
     const start = mission.start || { x: 0, z: 6000, alt: 1200, yaw: 0 };
     const ground = this.world.surfaceAt(start.x, start.z);
-    player.spawn({ name: 'Player', hp: stats.hp, radius: stats.radius, model: null, isTarget: false, capsuleHalf: 7 }, stats, TEAM.FRIEND, start.x, Math.max(start.alt, ground + 400), start.z, start.yaw || 0, start.speed || 210);
+    player.spawn({ name: 'Player', hp: stats.hp, radius: stats.radius, model: null, isTarget: true, capsuleHalf: 7 }, stats, TEAM.FRIEND, start.x, Math.max(start.alt, ground + 400), start.z, start.yaw || 0, start.speed || 210);
     player.isPlayer = true;
     player.signature = stats.signature;
     this.controller = new PlayerController(game.input, game.settings);

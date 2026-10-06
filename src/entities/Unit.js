@@ -40,6 +40,9 @@ export class Unit {
     this.isTarget = true; // shows in HUD / radar
     this.objective = null; // tag used by mission objectives
     this.renderKey = null;
+    this.paint = new THREE.Color(1, 1, 1);
+    this.hidden = false;
+    this.renderScale = 1;
     this._hashStamp = 0;
     this._slot = -1;
   }

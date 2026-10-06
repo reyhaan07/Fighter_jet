@@ -48,7 +48,7 @@ export class AIController {
     f.controls.ab = (this.flags & OUT.AB) !== 0;
     f.controls.brake = (this.flags & OUT.BRAKE) !== 0;
     const t = u.trigger;
-    t.gun = (this.flags & OUT.GUN) !== 0;
+    t.gun = (this.flags & OUT.GUN) !== 0 || u.forceGun === true;
     const sec = (this.flags & OUT.MISSILE) !== 0;
     t.secondaryPressed = sec && !t.secondary;
     t.secondaryReleased = !sec && t.secondary;

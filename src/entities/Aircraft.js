@@ -28,7 +28,6 @@ export class Aircraft extends Unit {
     this.trigger = { gun: false, secondary: false, secondaryPressed: false, secondaryReleased: false, gunReleased: false, defense: false, flares: false };
     this.gunDir = new THREE.Vector3(0, 0, -1);
     this.target = null;
-    this.paint = new THREE.Color(1, 1, 1);
     this.isPlayer = false;
     this.isWingman = false;
     this.ecm = 0;
@@ -58,6 +57,7 @@ export class Aircraft extends Unit {
     this.isWingman = false;
     this.smokeTimer = 0;
     this.dmgMult = 1;
+    this.forceGun = false;
     this.kind = 'air';
     this.isAir = true;
     this.capsuleHalf = def.capsuleHalf ?? Math.max(2, def.radius * 0.7);

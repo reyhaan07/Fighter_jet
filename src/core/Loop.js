@@ -3,7 +3,8 @@
 // `alpha` between the previous and the current simulation state.
 
 export class Loop {
-  constructor({ step = 1 / 60, maxSteps = 5, onStep, onRender }) {
+  constructor({ step = 1 / 60, maxSteps = 5, onStep, onRender, fpsCap = 0 }) {
+    this.fpsCap = fpsCap; // 0 = uncapped (display refresh rate)
     this.step = step;
     this.maxSteps = maxSteps;
     this.onStep = onStep;
@@ -23,6 +24,7 @@ export class Loop {
     if (this.running) return;
     this.running = true;
     this.last = performance.now();
+    this.nextFrame = this.last;
     this._raf = requestAnimationFrame(this._frame);
   }
 
@@ -34,6 +36,11 @@ export class Loop {
   _frame(now) {
     if (!this.running) return;
     this._raf = requestAnimationFrame(this._frame);
+    // Optional frame cap (e.g. a locked 60 on a 144 Hz display).
+    if (this.fpsCap) {
+      if (now < this.nextFrame - 2) return;
+      this.nextFrame = Math.max(this.nextFrame + 1000 / this.fpsCap, now - 4);
+    }
     let dt = (now - this.last) / 1000;
     this.last = now;
     if (dt > 0.25) dt = 0.25; // tab was hidden / debugger pause

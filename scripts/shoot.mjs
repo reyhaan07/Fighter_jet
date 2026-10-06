@@ -43,7 +43,13 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 await page.goto(`http://127.0.0.1:${port}/index.html${process.env.QS || ''}`);
-await page.waitForFunction(() => !document.getElementById('boot'), null, { timeout: 120000 });
+try {
+  await page.waitForFunction(() => !document.getElementById('boot'), null, { timeout: 120000 });
+} catch (e) {
+  console.log('BOOT FAILED:', await page.evaluate(() => document.getElementById('boot')?.textContent));
+  console.log(errors.join('\n'));
+  process.exit(1);
+}
 const { mkdir } = await import('node:fs/promises');
 await mkdir(out, { recursive: true });
 const ctx = { page, out, shot: (name) => page.screenshot({ path: join(out, name + '.png') }) };
