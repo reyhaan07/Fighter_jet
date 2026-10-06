@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { bakeSounds, RECORDING_NAMES } from './SoundBake.js';
+
+const RECORDINGS = import.meta.glob('../assets/sounds/*.{ogg,mp3,wav}', { eager: true, query: '?url', import: 'default' });
 
 // Procedural audio with the Web Audio API. Every sound is synthesised at
 // runtime (no audio files to download): jet engine and afterburner, guns,
@@ -54,6 +57,14 @@ export class Audio {
     this.noise = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // Pre-rendered sound bank + outdoor reverb send.
+    this.bank = bakeSounds(ctx);
+    this.reverb = ctx.createConvolver();
+    this.reverb.buffer = this.bank.ir;
+    this.reverbGain = ctx.createGain();
+    this.reverbGain.gain.value = 0.32;
+    this.reverb.connect(this.reverbGain).connect(this.gameBus);
+    this.loadRecordings();
     this.setVolumes(this.settings);
     this._startTones();
     this._startMusic();
@@ -77,6 +88,36 @@ export class Audio {
     if (paused) this.lockTone('off');
   }
 
+  /** Real recordings in src/assets/sounds/ (bundled at build time) override the baked sounds. */
+  async loadRecordings() {
+    for (const [path, url] of Object.entries(RECORDINGS)) {
+      const name = path.split('/').pop().replace(/\.(ogg|mp3|wav)$/, '');
+      if (!RECORDING_NAMES.includes(name)) continue;
+      try {
+        const res = await fetch(url);
+        this.bank[name] = await this.ctx.decodeAudioData(await res.arrayBuffer());
+        if ((name === 'engine' || name === 'afterburner') && this.engine) this._restartEngineLoop();
+      } catch {
+        console.warn('Could not decode sound', path);
+      }
+    }
+  }
+
+  /** Play a bank sound (one-shot), optionally spatialised. */
+  _play(name, pos, gain = 1, rate = 1, wet = 0.4) {
+    const buf = this.bank?.[name];
+    if (!buf) return false;
+    const o = this._out(pos, gain, this.sfx, wet);
+    if (!o) return true;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    src.connect(o);
+    src.start();
+    this._done(o, buf.duration / rate + 0.1);
+    return true;
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────
   _noiseSrc() {
     const s = this.ctx.createBufferSource();
@@ -87,14 +128,24 @@ export class Audio {
   }
 
   /** Output node for a one-shot: spatialised if pos is given. Returns null if culled. */
-  _out(pos, gain = 1, bus = this.sfx) {
+  _out(pos, gain = 1, bus = this.sfx, wet = 0) {
     if (!this.ctx || this.voices >= MAX_VOICES) return null;
     const ctx = this.ctx;
     const g = ctx.createGain();
     g.gain.value = gain;
+    if (wet > 0 && this.reverb) {
+      const send = ctx.createGain();
+      send.gain.value = wet * (pos ? Math.min(1.5, 0.5 + pos.distanceTo(this.listenerPos) / 1500) : 1);
+      g.connect(send).connect(this.reverb);
+    }
     if (pos) {
       const d = pos.distanceTo(this.listenerPos);
       if (d > 5000) return null;
+      // Air absorbs high frequencies with distance.
+      const air = ctx.createBiquadFilter();
+      air.type = 'lowpass';
+      air.frequency.value = Math.max(700, 18000 * Math.exp(-d / 1400));
+      g.connect(air);
       const p = ctx.createPanner();
       p.panningModel = 'equalpower';
       p.distanceModel = 'inverse';
@@ -104,7 +155,7 @@ export class Audio {
       p.positionX.value = pos.x;
       p.positionY.value = pos.y;
       p.positionZ.value = pos.z;
-      g.connect(p).connect(bus);
+      air.connect(p).connect(bus);
     } else g.connect(bus);
     this.voices++;
     return g;
@@ -196,6 +247,36 @@ export class Audio {
     for (const s of [e.whine, e.roar, e.ab, e.wind]) s.start();
     e.out.gain.setTargetAtTime(1, ctx.currentTime, 0.4);
     this.engine = e;
+    this._restartEngineLoop();
+  }
+
+  /** Looping turbine (baked or a real recording) and afterburner layers. */
+  _restartEngineLoop() {
+    const e = this.engine;
+    if (!e || !this.bank) return;
+    for (const k of ['loop', 'abLoop']) {
+      if (e[k]) {
+        e[k].stop();
+        e[k] = null;
+      }
+    }
+    const ctx = this.ctx;
+    e.loop = ctx.createBufferSource();
+    e.loop.buffer = this.bank.engine;
+    e.loop.loop = true;
+    e.loopG ||= ctx.createGain();
+    e.loopG.gain.value = 0.5;
+    e.loop.connect(e.loopG).connect(e.out);
+    e.loop.start();
+    if (this.bank.afterburner) {
+      e.abLoop = ctx.createBufferSource();
+      e.abLoop.buffer = this.bank.afterburner;
+      e.abLoop.loop = true;
+      e.abLoopG ||= ctx.createGain();
+      e.abLoopG.gain.value = 0;
+      e.abLoop.connect(e.abLoopG).connect(e.out);
+      e.abLoop.start();
+    }
   }
 
   stopEngine() {
@@ -206,7 +287,7 @@ export class Audio {
     const t = this.ctx.currentTime;
     e.out.gain.setTargetAtTime(0, t, 0.1);
     setTimeout(() => {
-      for (const s of [e.whine, e.roar, e.ab, e.wind]) s.stop();
+      for (const s of [e.whine, e.roar, e.ab, e.wind, e.loop, e.abLoop]) s?.stop();
       e.out.disconnect();
     }, 600);
   }
@@ -244,10 +325,29 @@ export class Audio {
       e.whineG.gain.setTargetAtTime((0.025 + thr * 0.05) * alive, t, 0.1);
       e.roarF.frequency.setTargetAtTime((300 + thr * 900) * cockpit, t, 0.1);
       e.roarG.gain.setTargetAtTime((0.12 + thr * 0.25) * alive, t, 0.1);
-      e.abG.gain.setTargetAtTime(f.afterburner * 0.7 * alive, t, 0.08);
+      e.abG.gain.setTargetAtTime(f.afterburner * (e.abLoop ? 0.25 : 0.7) * alive, t, 0.08);
+      if (e.loop) {
+        e.loop.playbackRate.setTargetAtTime(0.7 + thr * 0.45 + f.afterburner * 0.1, t, 0.15);
+        e.loopG.gain.setTargetAtTime((0.25 + thr * 0.55 + f.afterburner * 0.3) * alive, t, 0.1);
+      }
+      if (e.abLoop) e.abLoopG.gain.setTargetAtTime(f.afterburner * 0.9 * alive, t, 0.08);
       const sp = Math.min(1, f.speed / 380);
       e.windF.frequency.setTargetAtTime(500 + sp * 2500, t, 0.2);
       e.windG.gain.setTargetAtTime((0.02 + sp * sp * 0.2) * (f.controls.brake ? 1.8 : 1) * alive, t, 0.15);
+    }
+    // Jets roaring past the camera.
+    if (this.bank?.flyby) {
+      const air = s.entities.air;
+      for (let i = 0; i < air.length; i++) {
+        const u = air[i];
+        if (u === p || !u.alive || u.kind !== 'air' || !u.flight) continue;
+        const d = u.pos.distanceTo(cam.position);
+        if (d > 260 || t - (u._flybyAt || -99) < 6) continue;
+        const rel = u.vel.distanceTo(p.vel);
+        if (rel < 120) continue;
+        u._flybyAt = t;
+        this._play('flyby', u.pos, 2.2, 0.8 + Math.min(0.5, rel / 900), 0.5);
+      }
     }
     // Missile warning (fast) / lock warning (slow) beeps.
     const w = s.warnings;
@@ -334,6 +434,25 @@ export class Audio {
     if (!this.ctx) return;
     let l = this.loops[id];
     const t = this.ctx.currentTime;
+    if (!l && this.bank?.[sound] && sound === 'gun20') {
+      // Rendered (or recorded) rotary-cannon loop; spin-up raises the pitch.
+      l = this.loops[id] = { g: this.ctx.createGain(), sample: true };
+      l.src = this.ctx.createBufferSource();
+      l.src.buffer = this.bank.gun20;
+      l.src.loop = true;
+      l.g.gain.value = 0;
+      const send = this.ctx.createGain();
+      send.gain.value = 0.35;
+      l.src.connect(l.g).connect(this.sfx);
+      l.g.connect(send).connect(this.reverb);
+      l.src.start();
+    }
+    if (l?.sample) {
+      l.src.playbackRate.setTargetAtTime(0.55 + spin * 0.45, t, 0.04);
+      l.g.gain.setTargetAtTime(0.75 * spin, t, 0.02);
+      l.active = true;
+      return;
+    }
     if (!l) {
       const ctx = this.ctx;
       l = this.loops[id] = {};
@@ -382,6 +501,7 @@ export class Audio {
   }
 
   shot(sound, pos) {
+    if (sound !== 'plasma' && this._play(sound === 'gun30' ? 'gun30' : sound === 'aa' ? 'aa' : 'gunEnemy', pos, pos ? 1.6 : 0.9, 0.92 + Math.random() * 0.16, 0.45)) return;
     const o = this._out(pos, pos ? 1.4 : 0.8);
     if (!o) return;
     switch (sound) {
@@ -464,6 +584,7 @@ export class Audio {
 
   // ── Ordnance ─────────────────────────────────────────────────────────
   missileLaunch(kind, pos) {
+    if (this._play(kind === 'missileHeavy' || kind === 'swarm' ? 'missileHeavy' : 'missile', pos, pos ? 1.8 : 1, 0.94 + Math.random() * 0.12, 0.5)) return;
     const o = this._out(pos, pos ? 1.6 : 0.8);
     if (!o) return;
     const big = kind === 'missileHeavy';
@@ -473,6 +594,7 @@ export class Audio {
   }
 
   rocket(pos) {
+    if (this._play('rocket', pos, pos ? 1.3 : 0.6, 0.9 + Math.random() * 0.2, 0.3)) return;
     const o = this._out(pos, pos ? 1.2 : 0.5);
     if (!o) return;
     this._burst(o, { dur: 0.35, f0: 600, f1: 2500, type: 'bandpass', q: 1.5, vol: 0.7, attack: 0.01 });
@@ -480,6 +602,8 @@ export class Audio {
   }
 
   explosion(pos, size = 10) {
+    const name = size < 12 ? 'explosionSmall' : size < 30 ? 'explosionMedium' : 'explosionLarge';
+    if (this._play(name, pos, 2.4 + Math.min(1, size / 40) * 2, 0.85 + Math.random() * 0.3, 0.8)) return;
     const big = Math.min(1, size / 40);
     const o = this._out(pos, 2.2 + big * 2);
     if (!o) return;

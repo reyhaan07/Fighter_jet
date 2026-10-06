@@ -158,6 +158,12 @@ Every feature below scales with the quality preset (Low → Ultra):
 
 ---
 
+### Sound
+
+At startup the game renders its sound effects into audio buffers (about 0.3 s): a rotary-cannon loop made of individual rounds, layered explosions (crack, rolling body, sub-bass boom, debris crackle), rocket roar, a turbine engine loop and jet fly-bys with a Doppler pitch drop. In game, sounds are positioned in 3D, get duller with distance (air absorption) and get an outdoor echo.
+
+**Use real recordings:** drop `.ogg`, `.mp3` or `.wav` files into `src/assets/sounds/` with the names listed in `src/assets/sounds/README.md` (e.g. `engine.ogg`, `gun20.ogg`, `explosionLarge.wav`). They replace the built-in sounds and are bundled into the build, so the game stays offline.
+
 ## Performance
 
 The game is built to hold 60 FPS on a mid-range laptop with integrated graphics.

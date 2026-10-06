@@ -6,3 +6,4 @@ src-tauri/gen
 .DS_Store
 release
 stress-shots
+sound-preview
