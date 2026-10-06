@@ -24,12 +24,7 @@ async function boot() {
     ui: document.getElementById('ui'),
   });
   window.__game = game; // handy for debugging and the stress script
-  await game.boot?.();
-  if (!game.boot) {
-    const { FreeFlight } = await import('./game/modes/FreeFlight.js');
-    const qs = new URLSearchParams(location.search);
-    await game.startSession({ id: 'free', mode: FreeFlight, duel: qs.has('duel'), stress: qs.has('stress'), env: { time: 'day', terrain: 'islands', seed: 7 } });
-  }
+  await game.boot();
   boot.remove();
 }
 

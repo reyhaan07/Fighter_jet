@@ -55,7 +55,12 @@ await mkdir(out, { recursive: true });
 const ctx = { page, out, shot: (name) => page.screenshot({ path: join(out, name + '.png') }) };
 if (scenarioPath) {
   const mod = await import(resolve(scenarioPath));
-  await mod.default(ctx);
+  try {
+    await mod.default(ctx);
+  } catch (e) {
+    console.log('SCENARIO FAILED:', e.message.split('\n')[0]);
+    await ctx.shot('failure').catch(() => {});
+  }
 } else {
   await page.waitForTimeout(3000);
   await ctx.shot('default');

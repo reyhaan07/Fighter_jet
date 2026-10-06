@@ -91,9 +91,15 @@ export class Session {
     this.mode = Mode ? new Mode(this, mission) : null;
     await this.mode?.setup?.();
 
-    // Warm the pools and shaders so the first explosion doesn't hitch.
-    for (const key of ['missile', 'rocket', 'bomb']) this.models.ensure(key);
-    game.renderer.renderer.compile(scene, this.camera);
+    // Warm the pools and shaders so the first explosion doesn't hitch, and
+    // render one frame while the loading screen is still up.
+    for (const key of ['missile', 'missileBig', 'rocket', 'bomb', 'microMissile']) this.models.ensure(key);
+    const r = game.renderer.renderer;
+    if (r.compileAsync) await r.compileAsync(scene, this.camera);
+    else r.compile(scene, this.camera);
+    this.entities.interpolate(1);
+    this.cameraRig.update(1 / 60, this.player, this.controller.aimDir, this.controller.usingMouseAim, null, this.anchors, this.player.flight.speed);
+    game.renderer.render(0);
   }
 
   _buildPlayer() {
@@ -330,7 +336,6 @@ export class Session {
     this.warnings.step(dt);
     this.mode?.step?.(dt);
     if (this.warnings.outOfBounds > 12 && p.alive) this.combat.hit(p, 20 * dt, null, p.pos.x, p.pos.y, p.pos.z);
-    this.audio?.update(this, dt);
   }
 
   // ── Rendering ────────────────────────────────────────────────────────
@@ -381,6 +386,7 @@ export class Session {
     this.game.renderer.setEffects(this._blackout, p.disabled > 0 ? 0.6 : 0);
     this.game.renderer.render(this.renderTime);
     this.hud?.draw(this, dt);
+    this.audio?.update(this, dt);
   }
 
   dispose() {

@@ -32,9 +32,9 @@ export const SKY_PRESETS = {
     stars: 0.25,
     cirrus: 0.6,
     sunLight: 2.4,
-    hemiSky: 0x7a6a8a,
-    hemiGround: 0x2a2018,
-    hemi: 0.8,
+    hemiSky: 0x9a8aa8,
+    hemiGround: 0x3a3028,
+    hemi: 1.2,
     exposure: 0.95,
   },
   night: {

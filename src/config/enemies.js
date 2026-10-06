@@ -74,12 +74,12 @@ export const UNITS = {
   building: { name: 'Building', kind: 'ground', role: 'static', model: 'building', paint: 0x9b958a, hp: 120, radius: 14, score: 0, credits: 0, isTarget: false, explosion: 26 },
 
   // ── Ships ──
-  frigate: { name: 'Frigate', kind: 'sea', role: 'ship', model: 'frigate', paint: 0xa7adb3, hp: 300, radius: 40, score: 600, credits: 300, armored: true, speed: 9, missile: 'samMissile', range: 6500, reload: 9, aaGuns: [[0, 14, -10]], explosion: 45 },
-  destroyer: { name: 'Destroyer', kind: 'sea', role: 'ship', model: 'destroyer', paint: 0x8f979f, hp: 480, radius: 55, score: 900, credits: 450, armored: true, speed: 8, missile: 'samMissile', range: 8000, reload: 6, aaGuns: [[0, 12, -38], [0, 20, 2]], explosion: 60 },
-  carrier: { name: 'Carrier', kind: 'sea', role: 'carrier', model: 'carrier', paint: 0x80888f, hp: 1600, radius: 150, score: 3000, credits: 1500, armored: true, speed: 6, aaGuns: [[-30, 15, -120], [30, 15, -120], [-30, 15, 120], [30, 15, 120], [26, 40, 30]], explosion: 120, launches: 'fighter', launchEvery: 30 },
+  frigate: { name: 'Frigate', kind: 'sea', role: 'ship', model: 'frigate', paint: 0xa7adb3, hp: 300, radius: 58, capsuleHalf: 48, capsuleRadius: 12, score: 600, credits: 300, armored: true, speed: 9, missile: 'samMissile', range: 6500, reload: 9, aaGuns: [[0, 14, -10]], explosion: 45 },
+  destroyer: { name: 'Destroyer', kind: 'sea', role: 'ship', model: 'destroyer', paint: 0x8f979f, hp: 480, radius: 78, capsuleHalf: 66, capsuleRadius: 15, score: 900, credits: 450, armored: true, speed: 8, missile: 'samMissile', range: 8000, reload: 6, aaGuns: [[0, 12, -38], [0, 20, 2]], explosion: 60 },
+  carrier: { name: 'Carrier', kind: 'sea', role: 'carrier', model: 'carrier', paint: 0x80888f, hp: 1600, radius: 165, capsuleHalf: 140, capsuleRadius: 32, score: 3000, credits: 1500, armored: true, speed: 6, aaGuns: [[-30, 15, -120], [30, 15, -120], [-30, 15, 120], [30, 15, 120], [26, 40, 30]], explosion: 120, launches: 'fighter', launchEvery: 30 },
 
   // ── Boss: the flying fortress ──
-  fortress: { name: 'Sky Fortress', kind: 'air', role: 'boss', model: 'fortress', paint: 0x55595f, hp: 1, radius: 130, score: 10000, credits: 4000, invulnerable: true, explosion: 160, isTarget: true },
+  fortress: { name: 'Sky Fortress', kind: 'air', role: 'boss', model: 'fortress', paint: 0x55595f, hp: 1, radius: 130, speed: 45, ghost: true, score: 10000, credits: 4000, invulnerable: true, explosion: 160, isTarget: true },
   fortressEngine: { name: 'Fortress Engine', kind: 'part', role: 'part', model: 'fortressEngine', paint: 0x55595f, hp: 260, radius: 10, score: 800, credits: 300, explosion: 30 },
   fortressTurret: { name: 'Fortress Turret', kind: 'part', role: 'aa', model: 'turret', paint: 0x55595f, hp: 90, radius: 5, score: 250, credits: 80, range: 3000, explosion: 12 },
   fortressCore: { name: 'Reactor Core', kind: 'part', role: 'part', model: 'fortressCore', paint: 0xffffff, hp: 900, radius: 8, score: 5000, credits: 2000, explosion: 70 },

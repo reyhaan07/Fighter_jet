@@ -61,6 +61,7 @@ export class Aircraft extends Unit {
     this.kind = 'air';
     this.isAir = true;
     this.capsuleHalf = def.capsuleHalf ?? Math.max(2, def.radius * 0.7);
+    this.capsuleRadius = def.capsuleRadius ?? def.radius * 0.5;
     if (def.paint !== undefined) this.paint.set(def.paint);
     else this.paint.set(0xffffff);
     const t = this.trigger;

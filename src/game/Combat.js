@@ -59,7 +59,7 @@ export class Combat {
     const s = this.s;
     u.hp = 0;
     if (u.onDeath) u.onDeath(s, killer);
-    if (u.isAir && u.kind === 'air' && cause !== 'ground' && !u.noFall) {
+    if (u.isAir && u.kind === 'air' && cause !== 'ground' && !u.noFall && u.startDying) {
       u.startDying();
     } else {
       u.alive = false;

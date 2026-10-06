@@ -67,6 +67,9 @@ export class Unit {
     this.isTarget = def.isTarget ?? true;
     this.signature = def.signature ?? 1;
     this.ghost = !!def.ghost; // not collidable (e.g. bomber gunners)
+    // Optional capsule hitbox along the unit's forward axis (aircraft, ships).
+    this.capsuleHalf = def.capsuleHalf || 0;
+    this.capsuleRadius = def.capsuleRadius || this.radius * 0.5;
     this.renderKey = def.model;
     this.pos.set(x, y, z);
     this.prevPos.copy(this.pos);

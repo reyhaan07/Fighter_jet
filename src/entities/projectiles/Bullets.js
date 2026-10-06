@@ -24,14 +24,14 @@ function visit(u, c) {
   const r = u.radius + fuse;
   const d2 = segmentPointDist2(x0, y0, z0, dx, dy, dz, u.pos.x, u.pos.y, u.pos.z);
   if (d2 > r * r) return;
-  if (u.isAir && fuse === 0) {
+  if (u.capsuleHalf > 0 && fuse === 0) {
     // Narrow phase: capsule along the fuselage. forward = q * (0,0,-1)
     const f = u.capsuleHalf;
     const q = u.quat;
     const fx = -2 * (q.x * q.z + q.w * q.y);
     const fy = -2 * (q.y * q.z - q.w * q.x);
     const fz = -(1 - 2 * (q.x * q.x + q.y * q.y));
-    const cr = u.radius * 0.5;
+    const cr = u.capsuleRadius;
     const s2 = segmentSegmentDist2(x0, y0, z0, dx, dy, dz, u.pos.x - fx * f, u.pos.y - fy * f, u.pos.z - fz * f, fx * 2 * f, fy * 2 * f, fz * 2 * f);
     if (s2 > cr * cr) return;
   }

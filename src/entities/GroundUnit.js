@@ -43,6 +43,7 @@ export class GroundUnit extends Unit {
     this.burstCooldown = Math.random() * 2;
     this.launchTimer = def.launchEvery || 0;
     this.localOffset.set(0, 0, 0);
+    this.flying = false;
     this.invulnerable = !!def.invulnerable;
     this.heat = def.kind === 'sea' ? 0.7 : 0.45;
     this.paint.set(def.paint ?? 0xffffff);
@@ -83,7 +84,7 @@ export class GroundUnit extends Unit {
         _v.set(0, 0, -1).applyQuaternion(this.quat).multiplyScalar(def.speed);
         this.vel.copy(_v);
         this.pos.addScaledVector(_v, dt);
-        this.pos.y = this.kind === 'sea' ? 0 : ctx.world.surfaceAt(this.pos.x, this.pos.z);
+        if (!this.flying) this.pos.y = this.kind === 'sea' ? 0 : ctx.world.surfaceAt(this.pos.x, this.pos.z);
       }
     }
     if (this.kind === 'sea') {

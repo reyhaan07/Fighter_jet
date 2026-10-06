@@ -94,6 +94,7 @@ export class GunWeapon extends Weapon {
     );
     ctx.fx.muzzle(_p.x, _p.y, _p.z, d.muzzleSize || 1);
     if (o.isPlayer) {
+      ctx.stats.shots++;
       if (d.recoil) ctx.shake(d.recoil);
       if (!d.spinUp) ctx.audio?.shot(d.sound, null);
     } else if (Math.random() < 0.35) ctx.audio?.shot(d.sound, _p);
