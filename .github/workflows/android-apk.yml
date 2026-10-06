@@ -61,6 +61,12 @@ jobs:
           ./gradlew --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/StrikeWing.apk"
 
+      - name: Verify APK (signature and bundled game)
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs StrikeWing.apk
+          unzip -l StrikeWing.apk | grep -E "assets/public/index.html|assets/public/assets/.*\.js" | head
+          unzip -l StrikeWing.apk | grep -q "assets/public/index.html"
+
       - uses: actions/upload-artifact@v4
         with:
           name: StrikeWing-apk
