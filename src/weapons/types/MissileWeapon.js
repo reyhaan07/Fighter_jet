@@ -48,7 +48,10 @@ export class MissileWeapon extends Weapon {
     const d = this.def;
     if (!u || !u.alive || u.team === this.owner.team || u.invulnerable || !u.isTarget) return false;
     if (d.seeker === 'ir' || d.seeker === 'radar') {
-      if (!u.isAir) return false;
+      // The player's (and wingmen's) missiles also auto-lock ground vehicles,
+      // air-defence sites and ships, so tanks can be hit without aiming bombs.
+      const groundOk = (this.owner.isPlayer || this.owner.isWingman) && (u.kind === 'ground' || u.kind === 'sea' || u.kind === 'part');
+      if (!u.isAir && !groundOk) return false;
     } else if (d.seeker === 'ship') {
       if (u.kind !== 'sea') return false;
     } else if (d.seeker === 'ground') {
@@ -76,7 +79,8 @@ export class MissileWeapon extends Weapon {
       if (this.locks.includes(u) || !this.valid(u)) continue;
       _d.copy(u.pos).sub(o.pos);
       const dist = _d.length();
-      const score = _v.dot(_d) / dist - dist / 30000;
+      // Aircraft first (they shoot back fastest), then whatever is nearest the nose.
+      const score = _v.dot(_d) / dist - dist / 30000 + (u.isAir ? 0.4 : 0);
       if (score > bestScore) {
         bestScore = score;
         best = u;

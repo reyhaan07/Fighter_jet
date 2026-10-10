@@ -19,7 +19,7 @@ export class World {
     const viewDistance = quality.viewDistance;
     this.fogDensity = 1.5 / viewDistance;
 
-    this.sky = new Sky(env.time || 'day');
+    this.sky = new Sky(env.time || 'day', !!quality.lite);
     const p = this.sky.preset;
     scene.add(this.sky.mesh);
     scene.fog = new THREE.FogExp2(this.sky.uniforms.uHorizon.value.clone(), this.fogDensity);
@@ -65,6 +65,7 @@ export class World {
       type: env.terrain || 'islands',
       flatZones: env.flatZones || [],
       sunDir: this.sky.uniforms.uSunDir.value,
+      lite: !!quality.lite,
     });
     scene.add(this.terrain.mesh);
     this.water = new Water(this.sky, this.fogDensity, this.terrain);

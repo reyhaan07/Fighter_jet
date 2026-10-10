@@ -59,11 +59,14 @@ export class Audio {
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     // Pre-rendered sound bank + outdoor reverb send.
     this.bank = bakeSounds(ctx);
-    this.reverb = ctx.createConvolver();
-    this.reverb.buffer = this.bank.ir;
-    this.reverbGain = ctx.createGain();
-    this.reverbGain.gain.value = 0.32;
-    this.reverb.connect(this.reverbGain).connect(this.gameBus);
+    // The outdoor echo (convolution) is skipped on budget phones to save CPU.
+    if (!this.lite) {
+      this.reverb = ctx.createConvolver();
+      this.reverb.buffer = this.bank.ir;
+      this.reverbGain = ctx.createGain();
+      this.reverbGain.gain.value = 0.32;
+      this.reverb.connect(this.reverbGain).connect(this.gameBus);
+    } else this.reverb = null;
     this.loadRecordings();
     this.setVolumes(this.settings);
     this._startTones();
@@ -444,7 +447,7 @@ export class Audio {
       const send = this.ctx.createGain();
       send.gain.value = 0.35;
       l.src.connect(l.g).connect(this.sfx);
-      l.g.connect(send).connect(this.reverb);
+      if (this.reverb) l.g.connect(send).connect(this.reverb);
       l.src.start();
     }
     if (l?.sample) {

@@ -32,6 +32,7 @@ export class EntityManager {
   }
 
   add(u) {
+    if (u.team === TEAM.ENEMY && this.s.difficulty?.enemyHp && !u.isPlayer) u.hp = u.maxHp = u.maxHp * this.s.difficulty.enemyHp;
     u._slot = this.units.length;
     this.units.push(u);
     if (u.isAir) this.air.push(u);
@@ -82,7 +83,8 @@ export class EntityManager {
     u.role = def.role;
     u.aiRole = def.role === 'bomber' ? ROLE.BOMBER : def.role === 'drone' ? ROLE.DRONE : ROLE.FIGHTER;
     if (opts.paint !== undefined) u.paint.set(opts.paint);
-    const skill = Math.max(0, Math.min(1, s.difficulty.skill + (def.skill || 0) + (opts.skill || 0)));
+    // Later levels add skill (opts.skill); easier difficulties feel only part of it.
+    const skill = Math.max(0, Math.min(1, s.difficulty.skill + (def.skill || 0) + (opts.skill || 0) * (s.difficulty.levelSkill ?? 1)));
     // Controllers and loadouts are cached on the pooled aircraft and reused.
     const c = u._ai ? u._ai.reset(skill) : (u._ai = new AIController(s.ai, skill));
     c.director = s.ai;
@@ -94,8 +96,10 @@ export class EntityManager {
       let lo = u._loadouts[typeId];
       if (!lo) {
         lo = u._loadouts[typeId] = new Loadout(u, def.loadout, {});
-        if (lo.gun && team === TEAM.ENEMY) lo.gun.damage *= s.difficulty.aiGunDamage;
+        if (lo.gun) lo.gun.baseDamage = lo.gun.damage;
       } else lo.reset();
+      // Pooled loadouts are reused across teams and difficulties: set every spawn.
+      if (lo.gun) lo.gun.damage = lo.gun.baseDamage * (team === TEAM.ENEMY ? s.difficulty.aiGunDamage : 1);
       u.loadout = lo;
     }
     if (team === TEAM.FRIEND && opts.wingman) {

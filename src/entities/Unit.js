@@ -8,6 +8,13 @@ let NEXT_ID = 1;
 
 export const TEAM = { FRIEND: 0, ENEMY: 1 };
 
+/** Size boost per unit type (1 = true size). */
+export function unitSize(def) {
+  if (def.kind === 'air') return def.role === 'boss' ? 1 : def.role === 'bomber' ? 1.2 : 1.4;
+  if (def.kind === 'ground') return def.role === 'static' ? 1 : 1.6;
+  return 1; // ships, boss parts, the player's own jet
+}
+
 export class Unit {
   constructor() {
     this.id = 0;
@@ -70,6 +77,13 @@ export class Unit {
     // Optional capsule hitbox along the unit's forward axis (aircraft, ships).
     this.capsuleHalf = def.capsuleHalf || 0;
     this.capsuleRadius = def.capsuleRadius || this.radius * 0.5;
+    // Fighters, helicopters and ground vehicles are drawn (and hit) larger
+    // than life so they are easier to see and shoot on any screen.
+    const sz = unitSize(def);
+    this.renderScale = sz;
+    this.radius *= sz;
+    this.capsuleHalf *= sz;
+    this.capsuleRadius *= sz;
     this.renderKey = def.model;
     this.pos.set(x, y, z);
     this.prevPos.copy(this.pos);

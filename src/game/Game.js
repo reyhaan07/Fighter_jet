@@ -39,6 +39,7 @@ export class Game {
     this.renderer = new Renderer(canvas);
     this.input = new Input(canvas, this.settings.bindings);
     this.audio = new Audio(this.settings);
+    this.audio.lite = !!this.quality.lite;
     this.hud = new Hud(hudCanvas, this.settings);
     this.touch = IS_TOUCH ? new TouchControls(this) : null;
     this.daily = new Daily(this.save);
@@ -120,6 +121,7 @@ export class Game {
     const s = this.settings;
     this.audio.setVolumes(s);
     this.loop.fpsCap = s.targetFps || 0;
+    if (this.perf) this.perf.autoCap = 0; // a frame cap picked by the player wins
     if (rebuild || this.settings.renderScale !== this._lastScaleSetting) {
       this._lastScaleSetting = this.settings.renderScale;
       this.quality = this.resolveQuality();

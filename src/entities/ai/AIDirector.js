@@ -22,6 +22,7 @@ export class AIController {
 
   reset(skill) {
     this.skill = skill;
+    this._msUntil = 0;
     this.throttle = 0.8;
     this.flags = 0;
     this.mode = 0;
@@ -49,7 +50,13 @@ export class AIController {
     f.controls.brake = (this.flags & OUT.BRAKE) !== 0;
     const t = u.trigger;
     t.gun = (this.flags & OUT.GUN) !== 0 || u.forceGun === true;
-    const sec = (this.flags & OUT.MISSILE) !== 0;
+    // On easier difficulties a pilot often holds fire even with a missile shot.
+    const now = this.director.s.time;
+    if (now >= (this._msUntil || 0)) {
+      this._msUntil = now + 3 + Math.random() * 2;
+      this._msOk = Math.random() < (this.director.s.difficulty.missileRate ?? 1) || u.team !== 1;
+    }
+    const sec = (this.flags & OUT.MISSILE) !== 0 && this._msOk;
     t.secondaryPressed = sec && !t.secondary;
     t.secondaryReleased = !sec && t.secondary;
     t.secondary = sec;

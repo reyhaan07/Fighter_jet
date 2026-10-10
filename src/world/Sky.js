@@ -54,8 +54,9 @@ export const SKY_PRESETS = {
   },
 };
 
-export function createSkyMaterial() {
+export function createSkyMaterial(lite = false) {
   return new THREE.ShaderMaterial({
+    defines: lite ? { SKY_LITE: '' } : {},
     uniforms: {
       uZenith: { value: new THREE.Color() },
       uHorizon: { value: new THREE.Color() },
@@ -102,16 +103,23 @@ export function createSkyMaterial() {
           col += sun * pow(mu, 12.0) * 0.12 + sun * pow(mu, 4.0) * exp(-max(h, 0.0) * 6.0) * 0.1;
         }
 
-        vec2 cp = d.xz / max(d.y + 0.12, 0.05) * 1.4;
-        float cir = smoothstep(0.5, 0.9, fbm(cp * vec2(0.6, 2.2) + uTime * 0.002));
+        float cir = 0.0;
+        #ifndef SKY_LITE
+        if (uCirrus > 0.001 && h > 0.0) {
+          vec2 cp = d.xz / max(d.y + 0.12, 0.05) * 1.4;
+          cir = smoothstep(0.5, 0.9, fbm(cp * vec2(0.6, 2.2) + uTime * 0.002));
+        }
+        #endif
         col = mix(col, uHorizon * 1.15 + sun * 0.12 * pow(mu, 3.0), cir * smoothstep(0.02, 0.3, h) * uCirrus);
 
+        if (uStars > 0.001) {
         vec3 sd = d * 420.0;
         vec3 cell = floor(sd);
         float s = hash13(cell);
         float star = step(0.9975, s) * smoothstep(0.05, 0.4, h) * (1.0 - cir);
         float tw = 0.7 + 0.3 * sin(uTime * (1.5 + s * 5.0) + s * 40.0);
         col += vec3(0.85, 0.9, 1.0) * star * tw * smoothstep(0.35, 0.0, length(fract(sd) - 0.5)) * 1.6 * uStars;
+        }
 
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
@@ -119,17 +127,20 @@ export function createSkyMaterial() {
       }`,
     side: THREE.BackSide,
     depthWrite: false,
-    depthTest: false,
+    // Drawn after the opaque world at the far plane, so only pixels that
+    // nothing else covers pay for the sky shader.
+    depthTest: true,
+    depthFunc: THREE.LessEqualDepth,
   });
 }
 
 export class Sky {
-  constructor(presetName = 'day') {
-    this.material = createSkyMaterial();
+  constructor(presetName = 'day', lite = false) {
+    this.material = createSkyMaterial(lite);
     this.geometry = new THREE.SphereGeometry(1000, 32, 16);
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.frustumCulled = false;
-    this.mesh.renderOrder = -10;
+    this.mesh.renderOrder = 50; // after terrain and models, before transparent effects
     this.setPreset(presetName);
   }
 

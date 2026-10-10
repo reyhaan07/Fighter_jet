@@ -24,7 +24,8 @@ const PALETTES = {
 };
 
 export class Terrain {
-  constructor({ size = 32000, res = 256, seed = 1, type = 'islands', flatZones = [], sunDir = null }) {
+  constructor({ size = 32000, res = 256, seed = 1, type = 'islands', flatZones = [], sunDir = null, lite = false }) {
+    this.lite = lite;
     this.size = size;
     this.res = res;
     this.seed = seed;
@@ -202,7 +203,11 @@ export class Terrain {
     geo.setIndex(new THREE.BufferAttribute(idx, 1));
     geo.computeBoundingSphere();
 
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+    // Lite (budget phones): Lambert lighting and only the cheap colour detail.
+    const mat = this.lite
+      ? new THREE.MeshLambertMaterial({ vertexColors: true })
+      : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+    if (this.lite) mat.defines = { TERRAIN_LITE: '' };
     // Shader-side detail: rock strata on slopes, snow above the snow line,
     // beaches and wet sand, field patchwork, close-range bump detail and
     // cloud shadows drifting across the ground.
@@ -248,14 +253,20 @@ export class Terrain {
             float slope = 1.0 - N.y;
             float n1 = fbm(P.xz * 0.0032);
             float n2 = vnoise(P.xz * 0.045);
+            #ifdef TERRAIN_LITE
+            float n3 = 0.0;
+            #else
             float n3 = vnoise(P.xz * 0.4) * (1.0 - smoothstep(250.0, 1400.0, dist));
+            #endif
             vec3 base = diffuseColor.rgb * (0.72 + 0.5 * n1 + 0.14 * n2 + 0.1 * n3);
+            #ifndef TERRAIN_LITE
             // Field patchwork on low, flat land.
             vec2 cell = floor(P.xz / vec2(210.0, 160.0) + vec2(n1 * 1.5));
             float field = hash12(cell);
             float farmland = uFields * smoothstep(20.0, 50.0, P.y) * (1.0 - smoothstep(250.0, 420.0, P.y)) * (1.0 - smoothstep(0.04, 0.1, slope)) * step(0.35, hash12(floor(P.xz / 1400.0)));
             vec3 crop = base * mix(vec3(1.25, 1.12, 0.62), vec3(0.75, 1.0, 0.7), step(0.5, field)) * (0.85 + 0.3 * hash12(cell + 7.0));
             base = mix(base, crop, farmland * 0.75);
+            #endif
             // Rock strata on steep slopes.
             gRock = smoothstep(0.16 + n2 * 0.1, 0.3 + n2 * 0.1, slope);
             float strata = 0.82 + 0.18 * sin(P.y * 0.32 + n1 * 7.0 + n2 * 2.0);
@@ -268,9 +279,11 @@ export class Terrain {
             base = mix(base, uSand * (0.9 + 0.2 * n3), beach);
             base *= mix(0.62, 1.0, smoothstep(-0.5, 2.5, P.y));
             base *= mix(0.4, 1.0, smoothstep(-40.0, 0.0, P.y));
+            #ifndef TERRAIN_LITE
             // Drifting cloud shadows.
             float cs = smoothstep(0.5, 0.72, fbm(P.xz * 0.00021 + vec2(uTime * 0.0035, uTime * 0.0018)));
             base *= 1.0 - cs * uCloudShadow;
+            #endif
             diffuseColor.rgb = base;
           }`,
         )
@@ -295,7 +308,11 @@ export class Terrain {
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
           {
+            #ifdef TERRAIN_LITE
+            float fade = 0.0;
+            #else
             float fade = 1.0 - smoothstep(150.0, 1600.0, length(vTerrainPos - cameraPosition));
+            #endif
             if (fade > 0.001) {
               vec2 q = vTerrainPos.xz * 0.055;
               float h0 = vnoise(q) + 0.5 * vnoise(q * 2.7);
@@ -307,7 +324,7 @@ export class Terrain {
           }`,
         );
     };
-    mat.customProgramCacheKey = () => 'terrain-v2';
+    mat.customProgramCacheKey = () => (this.lite ? 'terrain-v2-lite' : 'terrain-v2');
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = 'terrain';
     mesh.receiveShadow = true;

@@ -319,3 +319,10 @@ table.help td { font-size: 13px; }
   .hangar .cards { max-height: none; }
   .loading { font-size: 15px; }
 }
+
+/* Settings: one-line explanations under each option */
+.opt { margin: 4px 0 10px; }
+.opt .row { margin: 6px 0 2px; }
+.hint { margin: 0 0 4px; font: 400 13px/1.35 var(--font-ui); color: var(--muted); max-width: 720px; }
+.hint b { color: #c9d4df; font-weight: 600; }
+@media (max-height: 560px) { .opt { margin: 2px 0 6px; } .hint { font-size: 12px; } }

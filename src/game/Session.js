@@ -99,6 +99,17 @@ export class Session {
     // Warm the pools and shaders so the first explosion doesn't hitch, and
     // render one frame while the loading screen is still up.
     for (const key of ['missile', 'missileBig', 'rocket', 'bomb', 'microMissile']) this.models.ensure(key);
+    if (q.lite) {
+      // Budget phones: the clear-coat/iridescent jet paint becomes plain PBR.
+      scene.traverse((o) => {
+        const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+        for (const m of ms) {
+          if (!m.isMeshPhysicalMaterial) continue;
+          m.clearcoat = m.iridescence = m.sheen = m.transmission = 0;
+          m.needsUpdate = true;
+        }
+      });
+    }
     const r = game.renderer.renderer;
     if (r.compileAsync) await r.compileAsync(scene, this.camera);
     else r.compile(scene, this.camera);

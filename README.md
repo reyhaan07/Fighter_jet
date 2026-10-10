@@ -132,7 +132,7 @@ Each jet is a variant of the portfolio's procedural fighter builder (`src/entiti
 | Category | Weapons |
 |---|---|
 | Guns | 20 mm rotary cannon (tracers, overheats), 30 mm HE autocannon, railgun (charge, hitscan, pierces up to 4 targets) |
-| Air-to-air | IR heat-seeker (lock growl, flares decoy it), radar long-range (fire-and-forget, 4 locks), swarm pod (12 micro-missiles) |
+| Air-to-air | IR heat-seeker (lock growl, flares decoy it), radar long-range (fire-and-forget, 4 locks), swarm pod (12 micro-missiles). Your missiles also lock tanks, SAMs, AA guns and ships when no aircraft is ahead, and do full damage to armor. |
 | Anti-ship / strike | Sea-skimming anti-ship missile, TV-guided cruise missile (you steer it through its camera) |
 | Air-to-ground | Rocket pods, laser-guided bomb, cluster bomb, bunker buster, napalm |
 | Special | EMP burst, laser beam (drains energy), plasma cannon, deployable homing combat drone |
@@ -142,7 +142,7 @@ Each jet is a variant of the portfolio's procedural fighter builder (`src/entiti
 
 The roster covers dogfighting fighters and interceptors, red aces, stealth fighters, attack drones, bombers with defensive gunners, attack helicopters, SAM launchers, AA guns, tanks, trucks, radar stations, bunkers, fuel depots, frigates, destroyers, an aircraft carrier that launches fighters, and the Sky Fortress boss.
 
-Enemy fighter AI pursues with lead, flanks to avoid head-on merges, breaks when someone is on its tail, extends after overshooting, and evades missiles by beaming them and popping flares. **Difficulty levels** (Recruit, Pilot, Veteran, Ace) change AI skill, accuracy, lock speed, how often they use flares, and how much damage you take.
+Enemy fighter AI pursues with lead, flanks to avoid head-on merges, breaks when someone is on its tail, extends after overshooting, and evades missiles by beaming them and popping flares. **Difficulty levels** change AI skill, accuracy, lock speed, how often enemies fire missiles and use flares, enemy toughness, and how much damage you take. Recruit is relaxed (enemies rarely fire missiles, go down fast, you take about a third of the damage), Pilot is balanced, Veteran and Ace are hard. Enemy jets, helicopters and ground vehicles are drawn 1.4–1.6× larger than life (hitboxes too) so they are easier to see and hit.
 
 Wingmen follow your commands: **attack my target**, **cover me** (engage threats near you) or **regroup** (fly formation).
 
@@ -194,7 +194,7 @@ The game is built to hold 60 FPS on a mid-range laptop with integrated graphics.
 - **Collision:** a spatial hash broad phase (`src/core/SpatialHash.js`) with sphere, then capsule, hitboxes for aircraft and ships. Bullets raycast the segment they travel each step, so they never tunnel. The railgun and laser are hitscan raycasts. There is no per-triangle collision.
 - **LOD and culling:** two LOD levels per model with per-instance frustum culling, plus exponential fog that hides the view distance.
 - **Web Worker AI:** once more than 24 aircraft and guided missiles are active, the AI brain and missile guidance (`src/entities/ai/brain.js`, pure functions over `Float32Array`s) move to `ai.worker.js`. The buffers are transferred back and forth with no copying. With fewer units the same code runs inline.
-- **Quality presets** (Low, Medium, High, Ultra, plus GPU auto-detection) set render scale, shadows, bloom, particle and debris counts, terrain resolution, view distance, cloud count, explosion lights and LOD distances.
+- **Quality presets** (Lite, Low, Medium, High, Ultra, plus auto-detection; Lite is for budget phones and uses simpler terrain, sky and jet shaders) set render scale, shadows, bloom, particle and debris counts, terrain resolution, view distance, cloud count, explosion lights and LOD distances.
 - **Adaptive resolution:** if FPS stays below target for 2 seconds, the render scale drops 10 % at a time (down to 50 %), then effect density drops. It recovers after a stable stretch.
 - **F3 overlay:** FPS, frame time, sim and render CPU time, draw calls, triangles, GPU geometries and textures, JS heap, unit, bullet and particle counts, AI mode and worker latency, and adaptive changes.
 - **Clean level changes:** each `Session` disposes its geometries, materials, textures, render targets, lights and the worker when it ends. After every menu → level → menu cycle, the renderer's geometry, texture and shader-program counts return exactly to the menu baseline.
@@ -372,7 +372,7 @@ scripts/                headless smoke tests, stress benchmark, icon generator
 ## Troubleshooting
 
 - **Black screen or "Failed to start":** the browser needs WebGL2. Update the GPU driver or try Chrome or Edge.
-- **Low FPS:** press F3. Choose a lower preset in Settings → Graphics, or lower the render scale. Adaptive resolution is on by default. Disabling browser extensions and closing other GPU-heavy tabs also helps.
+- **Low FPS:** press F3. Choose a lower preset in Settings → Graphics (Lite is the fastest), or lower Sharpness. "Keep it smooth automatically" is on by default and can lock to a steady 30 FPS on weak devices. Adaptive resolution is on by default. Disabling browser extensions and closing other GPU-heavy tabs also helps.
 - **The mouse doesn't steer:** click the game view to capture the mouse. If pointer lock isn't available, the aim follows the cursor position instead.
 - **No sound:** browsers start audio only after a click or key press. Check the volume sliders in Settings → Audio.
 - **Spoken radio** uses your operating system's offline voices (Settings → Audio → Spoken radio); it's off by default.

@@ -24,6 +24,35 @@ import { IS_TOUCH } from '../core/Platform.js';
 // lod0            distance (m) at which enemy jets switch to the full-detail model (0 = never)
 
 export const PRESETS = {
+  lite: {
+    id: 'lite',
+    label: 'Lite',
+    lite: true, // cheaper shaders: simple terrain detail, plain jet paint, no cirrus, no echo
+    renderScale: 0.62,
+    maxPixelRatio: 1,
+    shadows: 0,
+    post: false,
+    bloom: false,
+    bloomScale: 0.25,
+    particles: 2500,
+    debris: 120,
+    viewDistance: 9000,
+    terrainRes: 128,
+    clouds: 16,
+    lights: 0,
+    lodBias: 0.45,
+    trees: null,
+    towns: 0,
+    cloudPuffs: 50,
+    godRays: 0,
+    fxaa: false,
+    flare: false,
+    heat: false,
+    dust: 0,
+    contrails: false,
+    lod0: 0,
+    antialias: false,
+  },
   low: {
     id: 'low',
     label: 'Low',
@@ -35,7 +64,7 @@ export const PRESETS = {
     bloomScale: 0.25,
     particles: 6000,
     debris: 300,
-    viewDistance: 9000,
+    viewDistance: 12000,
     terrainRes: 160,
     clouds: 40,
     lights: 0,
@@ -138,7 +167,7 @@ export const PRESETS = {
   },
 };
 
-export const PRESET_ORDER = ['low', 'medium', 'high', 'ultra'];
+export const PRESET_ORDER = ['lite', 'low', 'medium', 'high', 'ultra'];
 
 function probeGPU() {
   try {
@@ -170,7 +199,13 @@ export function detectPreset() {
       (m && +m[1] >= 650) ||
       /mali-g7[1-9]|mali-g6[1-9]\d|immortalis|xclipse|apple gpu|apple a1[5-9]|apple m\d/.test(r) ||
       (navigator.deviceMemory || 4) >= 8;
-    return { preset: flagship ? 'medium' : 'low', gpu: gpu.renderer };
+    // Budget phones (older/entry GPUs, little memory, few cores) get Lite.
+    const budget =
+      (m && +m[1] < 616) ||
+      /mali-(t\d|g3\d|g5[0-7])|powervr|sgx|videocore/.test(r) ||
+      (navigator.deviceMemory || 4) <= 3 ||
+      (navigator.hardwareConcurrency || 8) <= 4;
+    return { preset: flagship ? 'medium' : budget ? 'lite' : 'low', gpu: gpu.renderer };
   }
   const cores = navigator.hardwareConcurrency || 4;
   const memory = navigator.deviceMemory || 8;

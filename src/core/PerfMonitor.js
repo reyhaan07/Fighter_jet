@@ -79,7 +79,7 @@ export class PerfMonitor {
     if (!g.settings.adaptive || !s || this.filled < WINDOW) return;
     this.cooldown -= dt;
     this.blockRaise -= dt;
-    const target = g.settings.targetFps || 60;
+    const target = this.autoCap || g.settings.targetFps || 60;
     const r = g.renderer;
     const preset = g.quality.renderScale;
     if (this.fps < target * 0.92) {
@@ -98,6 +98,12 @@ export class PerfMonitor {
       } else if (s.fx.q > 0.3) {
         s.fx.q *= 0.75;
         this._log(`effects density → ${Math.round(s.fx.q * 100)}%`);
+      } else if (!this.autoCap && (g.settings.targetFps || 60) > 30) {
+        // Still can't hold the target at the lowest settings: a steady 30 FPS
+        // feels far smoother than a frame rate jumping between 35 and 50.
+        this.autoCap = 30;
+        g.loop.fpsCap = 30;
+        this._log('frame rate locked to a steady 30 FPS');
       }
       this.lastChange = performance.now();
       this.lowTime = 0;

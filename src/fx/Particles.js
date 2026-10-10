@@ -99,9 +99,13 @@ const vertexShader = /* glsl */ `
     gl_Position = projectionMatrix * mv;
     float fade = smoothstep(0.0, 0.06, t) * (1.0 - smoothstep(0.55, 1.0, t));
     float dist = length(mv.xyz);
+    // Puffs right in front of the camera fade out: they would cover the whole
+    // screen (huge overdraw on phones) and look like a smudge anyway.
+    fade *= smoothstep(size * 0.8, size * 2.6, dist);
     float fog = exp(-uFogDensity * uFogDensity * dist * dist);
     vColor = vec4(aColor.rgb, aColor.a * fade);
     vColor *= fog;
+    if (vColor.a < 0.004) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
     vUv = position.xy + 0.5;
     vKind = aParams.w;
     vSeed = aParams.z;

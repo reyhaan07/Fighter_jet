@@ -141,6 +141,7 @@ export class Menus {
         <div class="row">
           <div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === diff ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div>
         </div>
+        <p class="hint">${esc(DIFFICULTY[diff]?.info || '')}</p>
         <div class="brief-actions">
           <div class="actions">
             <button data-act="prevLevel">‹</button>
@@ -260,25 +261,42 @@ export class Menus {
       .map((t) => `<button class="${t === tab ? 'on' : ''}" data-act="settingsTab" data-id="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`)
       .join('');
     let body = '';
-    const range = (key, label, min, max, step, fmtv = (v) => v) => `<div class="row"><label>${label}</label><input type="range" data-setting="${key}" min="${min}" max="${max}" step="${step}" value="${st[key]}"><output>${fmtv(st[key])}</output></div>`;
-    const toggle = (key, label) => `<div class="row"><label>${label}</label><button class="toggle ${st[key] ? 'on' : ''}" data-act="toggle" data-id="${key}">${st[key] ? 'ON' : 'OFF'}</button></div>`;
+    // Every option: a plain name, the control, and one line saying what it does.
+    const hint = (h) => (h ? `<p class="hint">${h}</p>` : '');
+    const range = (key, label, min, max, step, fmtv = (v) => v, h = '') => `<div class="opt"><div class="row"><label>${label}</label><input type="range" data-setting="${key}" min="${min}" max="${max}" step="${step}" value="${st[key]}"><output>${fmtv(st[key])}</output></div>${hint(h)}</div>`;
+    const toggle = (key, label, h = '') => `<div class="opt"><div class="row"><label>${label}</label><button class="toggle ${st[key] ? 'on' : ''}" data-act="toggle" data-id="${key}">${st[key] ? 'ON' : 'OFF'}</button></div>${hint(h)}</div>`;
     if (tab === 'graphics') {
       const det = this.game.detected;
+      const QINFO = {
+        auto: `Picks the best setting for this device (right now: <b>${PRESETS[det.preset].label}</b>).`,
+        lite: 'Fastest. For budget phones: simpler ground, sky and effects, lower resolution.',
+        low: 'Smooth on most phones and older laptops. No glow effects or trees.',
+        medium: 'Nicer: glow on fire and lights, more clouds and particles.',
+        high: 'Great looks: shadows, sun rays, forests and towns. Needs a decent graphics card.',
+        ultra: 'Everything at maximum. For powerful gaming PCs.',
+      };
+      const cur = st.quality in QINFO ? st.quality : 'auto';
       body = `
-        <div class="row"><label>Quality preset</label><div class="seg">
-          <button data-act="quality" data-id="auto" class="${st.quality === 'auto' ? 'on' : ''}">Auto (${PRESETS[det.preset].label})</button>
+        <div class="opt"><div class="row"><label>Graphics quality</label><div class="seg">
+          <button data-act="quality" data-id="auto" class="${st.quality === 'auto' ? 'on' : ''}">Auto</button>
           ${PRESET_ORDER.map((q) => `<button data-act="quality" data-id="${q}" class="${st.quality === q ? 'on' : ''}">${PRESETS[q].label}</button>`).join('')}
         </div></div>
-        <p class="muted small">Detected GPU: ${esc(det.gpu)}. Presets change resolution scale, shadows, bloom, particle counts, terrain detail and view distance. Terrain and view distance apply from the next mission.</p>
-        ${range('brightness', 'Brightness', 0.6, 1.4, 0.05, (v) => Math.round(v * 100) + '%')}
-        ${range('renderScale', 'Render scale (0 = preset)', 0, 1, 0.05, (v) => (+v ? Math.round(v * 100) + '%' : 'preset'))}
-        ${toggle('adaptive', 'Adaptive resolution (lower scale when FPS drops)')}
-        <div class="row"><label>Frame cap</label><div class="seg">${[30, 60, 90, 120, 0].map((f) => `<button data-act="fpsCap" data-id="${f}" class="${+st.targetFps === f ? 'on' : ''}">${f || 'Off'}</button>`).join('')}</div></div>
-        ${toggle('showFps', 'Performance overlay (F3)')}`;
+        <p class="hint"><b>${cur === 'auto' ? 'Auto' : PRESETS[cur].label}:</b> ${QINFO[cur]} If the game stutters, pick a lower one. Ground detail and view distance change when the next mission starts.</p></div>
+        ${range('brightness', 'Brightness', 0.6, 1.4, 0.05, (v) => Math.round(v * 100) + '%', 'Makes the whole picture brighter or darker. 100% is normal.')}
+        ${range('renderScale', 'Sharpness', 0, 1, 0.05, (v) => (+v ? Math.round(v * 100) + '%' : 'Auto'), 'How many pixels the game draws. Lower is blurrier but faster. Leave on Auto (far left) to let the quality setting decide.')}
+        ${toggle('adaptive', 'Keep it smooth automatically', 'When the game starts to stutter it lowers the sharpness by itself, and raises it again when it can. On budget phones it may also lock to a steady 30 FPS.')}
+        <div class="opt"><div class="row"><label>Max frames per second</label><div class="seg">${[30, 60, 90, 120, 0].map((f) => `<button data-act="fpsCap" data-id="${f}" class="${+st.targetFps === f ? 'on' : ''}">${f || 'No limit'}</button>`).join('')}</div></div>
+        <p class="hint">30 saves battery and stays steady on weak devices. 60 is smooth. Higher only helps on 90/120 Hz screens.</p></div>
+        ${toggle('showFps', 'Show speed meter (F3)', 'Shows frames per second in the corner, to check how smoothly the game runs.')}
+        <p class="muted small">Your graphics chip: ${esc(det.gpu)}</p>`;
     } else if (tab === 'audio') {
       const pct = (v) => Math.round(v * 100) + '%';
-      body = `${range('masterVolume', 'Master', 0, 1, 0.05, pct)}${range('sfxVolume', 'Effects', 0, 1, 0.05, pct)}${range('engineVolume', 'Engine', 0, 1, 0.05, pct)}${range('radioVolume', 'Radio', 0, 1, 0.05, pct)}${range('musicVolume', 'Music', 0, 1, 0.05, pct)}
-        ${toggle('voice', 'Spoken radio (uses your system’s offline voices)')}`;
+      body = `${range('masterVolume', 'Overall volume', 0, 1, 0.05, pct, 'Turns every sound up or down together.')}
+        ${range('sfxVolume', 'Weapons and explosions', 0, 1, 0.05, pct, 'Guns, missiles, hits and explosions.')}
+        ${range('engineVolume', 'Your jet engine', 0, 1, 0.05, pct, 'The roar of your own engine and afterburner.')}
+        ${range('radioVolume', 'Radio messages', 0, 1, 0.05, pct, 'Beeps and voices from your wingmen and command.')}
+        ${range('musicVolume', 'Music', 0, 1, 0.05, pct, 'Background music in the menus and missions.')}
+        ${toggle('voice', 'Read radio messages aloud', 'Uses the voices built into your device to speak radio messages. Works offline.')}`;
     } else if (tab === 'controls') {
       const groups = {};
       for (const [id, label, group] of ACTIONS) (groups[group] ||= []).push([id, label]);
@@ -294,30 +312,34 @@ export class Menus {
         .join('');
       if (IS_TOUCH && !this.showKeys) {
         body = `
-        ${toggle('autoLevel', 'Auto-level assist (levels the wings when you let go of the stick)')}
-        ${toggle('invertY', 'Invert pitch (drag down to climb, like a real stick)')}
+        ${toggle('autoLevel', 'Auto-level', 'Levels your wings by itself when you let go of the stick. Recommended.')}
+        ${toggle('invertY', 'Flip up and down', 'Off: drag up to climb. On: drag down to climb, like pulling back on a real stick.')}
         <p class="muted small"><b>Touch controls:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge is the throttle; slide into the orange <b>AB</b> zone at the top for afterburner. Hold <b>GUN</b> to fire the cannon. Tap the blue weapon button to fire the selected weapon (missiles lock on by themselves when a target is in front of you). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
         <div class="actions"><button data-act="showKeys">Keyboard &amp; gamepad bindings</button></div>`;
       } else body = `
-        ${toggle('mouseAim', 'Mouse-aim mode (mouse steers the aim, jet follows)')}
-        ${toggle('autoLevel', 'Auto-level assist')}
-        ${toggle('invertY', 'Invert Y (pitch)')}
-        ${range('mouseSensitivity', 'Mouse sensitivity', 0.2, 3, 0.05, (v) => (+v).toFixed(2))}
-        <p class="muted small">Click a binding, then press a key, mouse button or gamepad button/stick (Esc cancels). Right-click a binding to clear it.</p>
+        ${toggle('mouseAim', 'Steer with the mouse', 'On (easiest): move the mouse and the jet flies where you point. Off: fly only with the arrow keys or a gamepad.')}
+        ${toggle('autoLevel', 'Auto-level', 'Levels your wings by itself when you let go of the controls.')}
+        ${toggle('invertY', 'Flip up and down', 'Off: Up arrow climbs. On: Down arrow climbs, like pulling back on a real stick.')}
+        ${range('mouseSensitivity', 'Mouse speed', 0.2, 3, 0.05, (v) => (+v).toFixed(2), 'How far the aim moves when you move the mouse. 1.00 is normal.')}
+        <h5>Change keys</h5>
+        <p class="hint">Click a box, then press the key, mouse button or gamepad button you want. Esc cancels. Right-click a box to clear it.</p>
         <div class="bindings">${rows}</div>
         <div class="actions"><button data-act="resetBindings">Reset to defaults</button></div>`;
     } else {
       body = `
-        <div class="row"><label>Difficulty</label><div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === st.difficulty ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div></div>
-        <div class="row"><label>Pilot callsign</label><input type="text" maxlength="12" data-setting="pilotName" value="${esc(st.pilotName)}"></div>
-        ${toggle('damageNumbers', 'Damage numbers')}
-        ${toggle('killCam', 'Cinematic kill cam')}
+        <div class="opt"><div class="row"><label>Difficulty</label><div class="seg">${DIFFICULTY_ORDER.map((d) => `<button data-act="difficulty" data-id="${d}" class="${d === st.difficulty ? 'on' : ''}">${DIFFICULTY[d].label}</button>`).join('')}</div></div>
+        <p class="hint"><b>${DIFFICULTY[st.difficulty]?.label}:</b> ${DIFFICULTY[st.difficulty]?.info || ''}</p></div>
+        <div class="opt"><div class="row"><label>Pilot name</label><input type="text" maxlength="12" data-setting="pilotName" value="${esc(st.pilotName)}"></div><p class="hint">Shown on the leaderboard.</p></div>
+        ${toggle('damageNumbers', 'Show damage numbers', 'Little numbers pop up showing how hard each hit landed.')}
+        ${toggle('killCam', 'Slow-motion kill camera', 'Sometimes shows a short cinematic replay when you shoot down a jet.')}
+        <h5>Your progress</h5>
+        <p class="hint">Back up your progress to a file, load it on another device, or start over.</p>
         <div class="actions">
-          <button data-act="exportSave">Export save file</button>
-          <label class="filebtn">Import save file<input type="file" accept="application/json" data-import hidden></label>
-          <button class="danger" data-act="resetProgress">Reset campaign progress</button>
+          <button data-act="exportSave">Save backup to a file</button>
+          <label class="filebtn">Load a backup file<input type="file" accept="application/json" data-import hidden></label>
+          <button class="danger" data-act="resetProgress">Start over (erase progress)</button>
         </div>
-        <p class="muted small">Progress, credits, unlocks, settings and the leaderboard are saved automatically in this browser (localStorage). Export a save file to back it up or move it to another computer.</p>`;
+        <p class="muted small">Your progress, credits, jets and settings save automatically on this device.</p>`;
     }
     return `
     <div class="menu panel-layout settings">
@@ -746,7 +768,7 @@ export class Menus {
     const st = this.game.settings;
     st[key] = el.type === 'range' ? +el.value : el.value;
     const out = el.parentElement.querySelector('output');
-    if (out) out.textContent = el.type === 'range' ? (key.includes('Volume') || key === 'brightness' ? Math.round(el.value * 100) + '%' : key === 'renderScale' ? (+el.value ? Math.round(el.value * 100) + '%' : 'preset') : (+el.value).toFixed(2)) : el.value;
+    if (out) out.textContent = el.type === 'range' ? (key.includes('Volume') || key === 'brightness' ? Math.round(el.value * 100) + '%' : key === 'renderScale' ? (+el.value ? Math.round(el.value * 100) + '%' : 'Auto') : (+el.value).toFixed(2)) : el.value;
     this.game.applySettings();
   }
 }

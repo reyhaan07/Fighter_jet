@@ -48,7 +48,6 @@ export class GroundUnit extends Unit {
     this.heat = def.kind === 'sea' ? 0.7 : 0.45;
     this.paint.set(def.paint ?? 0xffffff);
     this.hidden = !def.model;
-    this.renderScale = 1;
     return this;
   }
 
