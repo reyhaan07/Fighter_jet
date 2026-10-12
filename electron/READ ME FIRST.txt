@@ -1,0 +1,18 @@
+STRIKE WING - PC version
+========================
+
+HOW TO PLAY
+1. Right-click the ZIP file and choose "Extract All...". Do not run it from inside the ZIP.
+2. Open the extracted folder and double-click "Strike Wing.exe".
+3. If Windows shows "Windows protected your PC", click "More info" then "Run anyway".
+   (The game is not signed with a paid certificate; it is safe and fully offline.)
+4. Optional: right-click "Strike Wing.exe" > Send to > Desktop (create shortcut).
+
+No installation and no internet needed. Your progress is saved automatically.
+
+CONTROLS
+Arrow keys / mouse: fly      Left click: gun      Right click: missile
+Mouse wheel or W/S: speed    Shift: afterburner   R/Q: switch weapon
+X: flares   V: chaff/defence   T: next target   C: camera   Esc: pause
+
+If it runs slowly: Esc > Settings > Graphics > pick "Low" or "Lite".

@@ -1,0 +1,48 @@
+# Builds the ready-to-play Windows version (Strike Wing.exe in a ZIP, no
+# install needed) and publishes it as the "PC version" release:
+#   https://github.com/<owner>/<repo>/releases/tag/pc-latest → StrikeWing-PC-Windows.zip
+name: Windows ZIP
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['src/**', 'public/**', 'index.html', 'package*.json', 'electron/**', 'scripts/package-windows.mjs', '.github/workflows/windows-zip.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-zip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Package Windows app
+        env:
+          APP_VERSION: 1.0.${{ github.run_number }}
+        run: npm run package:windows
+      - name: Check the package
+        run: |
+          unzip -l release/StrikeWing-PC-Windows.zip | grep -E "Strike Wing/Strike Wing.exe|READ ME FIRST|resources/app/dist/index.html"
+          ls -la release/StrikeWing-PC-Windows.zip
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=pc-latest
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" release/StrikeWing-PC-Windows.zip \
+            --target "$GITHUB_SHA" \
+            --title "Strike Wing for Windows PC (build ${{ github.run_number }})" \
+            --latest=false \
+            --notes "Download **StrikeWing-PC-Windows.zip**, right-click it → Extract All, then double-click **Strike Wing.exe** in the extracted folder. No install or internet needed. If Windows SmartScreen appears, click More info → Run anyway. Built from ${GITHUB_SHA::7}."

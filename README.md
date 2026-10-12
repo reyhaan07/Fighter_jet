@@ -173,6 +173,12 @@ At startup the game renders its sound effects into audio buffers (about 0.3 s): 
 
 **Use real recordings:** drop `.ogg`, `.mp3` or `.wav` files into `src/assets/sounds/` with the names listed in `src/assets/sounds/README.md` (e.g. `engine.ogg`, `gun20.ogg`, `explosionLarge.wav`). They replace the built-in sounds and are bundled into the build, so the game stays offline.
 
+## Download for Windows PC (no install)
+
+Get **StrikeWing-PC-Windows.zip** from the [PC release](https://github.com/reyhaan07/Fighter_jet/releases/tag/pc-latest). Right-click it → **Extract All**, open the extracted **Strike Wing** folder and double-click **Strike Wing.exe**. It needs no installation, no Node.js and no internet. If Windows SmartScreen says "Windows protected your PC", click **More info → Run anyway** (the app isn't signed with a paid certificate).
+
+The ZIP is rebuilt on GitHub after every change (`.github/workflows/windows-zip.yml`). To build it yourself: `npm install`, then `npm run package:windows` (output in `release/`).
+
 ## Android app (phones)
 
 `mobile-game/` packages the same game as an Android app with touch controls, a throttle slider and phone graphics settings. Download **StrikeWing.apk** on your phone from the [latest release](https://github.com/reyhaan07/Fighter_jet/releases/latest) and open it to install. See [mobile-game/README.md](mobile-game/README.md) for controls and how the APK is built. The web version also shows the touch controls when opened on a phone or tablet.
