@@ -61,6 +61,7 @@ export class PlayerController {
   reset(u) {
     this.aimDir.set(0, 0, -1).applyQuaternion(u.quat);
     this.abDetent = false;
+    this.flipCd = 0;
     this.gStress = this.gloc = this.vision = this.redout = 0;
     this.manual = 0;
   }
@@ -126,6 +127,28 @@ export class PlayerController {
       }
       _fwd.set(0, 0, -1).applyQuaternion(u.quat);
       this.aimDir.copy(_fwd);
+    }
+
+    // Quick Turn: 180° reversal toward the side of the bandit behind (or the
+    // selected target), handled by the flight model. 4 s cooldown.
+    if (this.flipCd > 0) this.flipCd -= dt;
+    if (inp.pressed('quickTurn') && !(f.flip > 0) && !(this.flipCd > 0) && f.speed > u.stats.stallSpeed * 1.2) {
+      const t = this.sixThreat || u.target;
+      let dir = 1;
+      if (t) {
+        _fwd.set(1, 0, 0).applyQuaternion(u.quat); // right wing
+        dir = (t.pos.x - u.pos.x) * _fwd.x + (t.pos.z - u.pos.z) * _fwd.z > 0 ? -1 : 1;
+      }
+      f.flip = Math.PI;
+      f.flipDir = dir;
+      this.flipCd = 4;
+      this.gStress = Math.min(2.4, (this.gStress || 0) + 0.5); // it is a hard manoeuvre
+    }
+    if (f.flip > 0) {
+      // The aim follows the nose round so mouse-aim does not pull back.
+      _fwd.set(0, 0, -1).applyQuaternion(u.quat);
+      this.aimDir.copy(_fwd);
+      this.manual = 0.3;
     }
 
     // Throttle: W/S (or triggers) move the setting; afterburner past 100 %.

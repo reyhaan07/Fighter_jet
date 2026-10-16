@@ -27,9 +27,13 @@ export class FlightState {
     this.bank = 0;
     this.overG = 0;
     this.airDensity = 1;
-    this.controls = { pitch: 0, roll: 0, yaw: 0, ab: false, brake: false };
+    this.flip = 0; // radians of Quick Turn still to go (0 = none)
+    this.flipDir = 1; // +1 turns left, -1 right
+    this.flipBank = 0;
+    this.controls = { pitch: 0, roll: 0, yaw: 0, ab: false, brake: false, boost: false };
   }
   reset(speed, throttle = 0.75) {
+    this.flip = this.flipBank = 0;
     this.throttle = this.throttleTarget = throttle;
     this.afterburner = 0;
     this.angVel.set(0, 0, 0);
@@ -42,9 +46,44 @@ export class FlightState {
   }
 }
 
+const _Y = new THREE.Vector3(0, 1, 0);
+const _Z = new THREE.Vector3(0, 0, 1);
+const _qa = new THREE.Quaternion();
+const FLIP_TIME = 1.5; // seconds for the full 180°
+
+/**
+ * Quick Turn: a thrust-vectoring 180° reversal (arcade). The nose and the
+ * flight path swing round together about the world vertical while the jet
+ * banks into the turn and back out; it bleeds about a quarter of the speed.
+ */
+function stepFlip(u, dt) {
+  const f = u.flight;
+  const step = Math.min(f.flip, (Math.PI / FLIP_TIME) * dt);
+  const progress = 1 - (f.flip - step) / Math.PI;
+  // Undo last step's bank, yaw round the vertical, re-apply the new bank.
+  u.quat.multiply(_qa.setFromAxisAngle(_Z, -f.flipBank));
+  _qa.setFromAxisAngle(_Y, step * f.flipDir);
+  u.quat.premultiply(_qa).normalize();
+  u.vel.applyQuaternion(_qa);
+  f.flipBank = f.flipDir * 1.25 * Math.sin(Math.PI * progress);
+  u.quat.multiply(_qa.setFromAxisAngle(_Z, f.flipBank)).normalize();
+  u.vel.multiplyScalar(1 - 0.19 * dt);
+  f.angVel.set(0, 0, 0);
+  f.flip -= step;
+  if (f.flip <= 1e-4) {
+    u.quat.multiply(_qa.setFromAxisAngle(_Z, -f.flipBank)).normalize();
+    f.flip = 0;
+    f.flipBank = 0;
+  }
+}
+
 export function stepFlight(u, stats, dt, mult = 1) {
   const f = u.flight;
   const c = f.controls;
+  if (f.flip > 0) {
+    stepFlip(u, dt);
+    c.pitch = c.roll = c.yaw = 0;
+  }
 
   // Engine spool.
   const tt = clamp(f.throttleTarget, 0, 1);
@@ -104,8 +143,10 @@ export function stepFlight(u, stats, dt, mult = 1) {
   _up.set(0, 1, 0).applyQuaternion(u.quat);
 
   // Longitudinal forces.
-  const thrust = (f.throttle * stats.thrust + f.afterburner * stats.abThrust) * Math.pow(rho, 1.2);
-  const dragK = (stats.thrust + stats.abThrust) / (stats.maxSpeed * stats.maxSpeed);
+  // boost: AI repositioning sprint (about +45 % top speed) so a tail-sitter can
+  // overtake and come back head-on. Never set for the player.
+  const thrust = (f.throttle * stats.thrust + f.afterburner * stats.abThrust) * Math.pow(rho, 1.2) * (c.boost ? 1.6 : 1);
+  const dragK = ((stats.thrust + stats.abThrust) / (stats.maxSpeed * stats.maxSpeed)) * (c.boost ? 0.75 : 1);
   const drag = (dragK * speed * speed + (c.brake ? stats.brake * speed * speed * 0.01 + 8 : 0)) * rho;
   const induced = stats.induced * Math.abs(av.x) * speed;
   speed += (thrust - drag - induced - G * _fwd.y) * dt;

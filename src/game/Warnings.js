@@ -11,6 +11,7 @@ export class Warnings {
     this.nearestMissile = Infinity;
     this.stall = false;
     this.pullUp = false;
+    this.six = null; // enemy aircraft sitting behind the player
     this._lock = 0;
     this._sam = 0;
   }
@@ -47,6 +48,22 @@ export class Warnings {
       const d = o.pos.distanceTo(p.pos);
       if (d < this.nearestMissile) this.nearestMissile = d;
     }
+    // Bandit on our six: the nearest enemy jet close behind us.
+    this.six = null;
+    const fw = p.forward;
+    let best = 2200;
+    for (const u of s.entities.air) {
+      if (!u.alive || u.team === p.team || u.ghost || u.role === 'boss') continue;
+      const rx = u.pos.x - p.pos.x;
+      const ry = u.pos.y - p.pos.y;
+      const rz = u.pos.z - p.pos.z;
+      const dist = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+      if (dist < best && (rx * fw.x + ry * fw.y + rz * fw.z) / dist < -0.5) {
+        best = dist;
+        this.six = u;
+      }
+    }
+    if (s.controller) s.controller.sixThreat = this.six;
     const f = p.flight;
     this.stall = f.stalled;
     const ground = s.world.surfaceAt(p.pos.x + p.vel.x * 4, p.pos.z + p.vel.z * 4);

@@ -326,3 +326,8 @@ table.help td { font-size: 13px; }
 .hint { margin: 0 0 4px; font: 400 13px/1.35 var(--font-ui); color: var(--muted); max-width: 720px; }
 .hint b { color: #c9d4df; font-weight: 600; }
 @media (max-height: 560px) { .opt { margin: 2px 0 6px; } .hint { font-size: 12px; } }
+
+.t-flip { width: calc(52px * var(--u)); height: calc(52px * var(--u)); left: calc(76px * var(--u) + env(safe-area-inset-left)); top: 52vh; border-color: rgba(255, 207, 90, 0.55); }
+.t-flip b { font-size: calc(14px * var(--u)); }
+.t-flip.t-ready { border-color: #ffcf5a; box-shadow: 0 0 16px rgba(255, 207, 90, 0.7); background: rgba(60, 44, 8, 0.5); }
+.t-flip.t-cool { opacity: 0.45; }

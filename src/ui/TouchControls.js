@@ -5,6 +5,7 @@ import { buzz } from '../core/Platform.js';
 //   left edge     throttle slider; the top notch past 100 % is the afterburner
 //   left half     floating flight stick: touch anywhere, drag to pitch and roll
 //   right side    GUN (hold), selected weapon (missiles lock on by themselves),
+//                 180° quick turn,
 //                 next weapon, flares, defence, next target
 //   top right     pause, camera, wingman orders
 //
@@ -22,6 +23,7 @@ const BUTTONS = [
   ['wpn', 'nextWeapon', 'tap', 'WPN', 't-wpn'],
   ['def', 'defense', 'tap', 'DEF', 't-def'],
   ['tgt', 'nextTarget', 'tap', 'TGT', 't-tgt'],
+  ['flip', 'quickTurn', 'tap', '180°', 't-flip'],
   ['cam', 'camera', 'tap', 'CAM', 't-cam'],
   ['wing', 'wing', 'tap', 'WING', 't-wing'],
   ['pause', 'pause', 'tap', 'II', 't-pause'],
@@ -269,7 +271,11 @@ export class TouchControls {
         this._set('def', 'small', h.status || String(h.ammo === Infinity ? '∞' : h.ammo));
       }
     }
-    const hasWing = session.wingmen?.some((w) => w.alive);
+    // Quick-turn button: glows when a bandit is behind, dims while recharging.
+    const cd = session.controller?.flipCd > 0 || f.flip > 0;
+    this.btn.flip.el.classList.toggle('t-ready', !!session.warnings?.six && !cd);
+    this.btn.flip.el.classList.toggle('t-cool', cd);
+        const hasWing = session.wingmen?.some((w) => w.alive);
     this.btn.wing.el.hidden = !hasWing;
     if (!this._labels.wingsmall) this._set('wing', 'small', WING_ORDERS[this.wingIndex][1]);
   }

@@ -48,6 +48,7 @@ export class AIController {
     f.throttleTarget = this.throttle;
     f.controls.ab = (this.flags & OUT.AB) !== 0;
     f.controls.brake = (this.flags & OUT.BRAKE) !== 0;
+    f.controls.boost = (this.flags & OUT.BOOST) !== 0;
     const t = u.trigger;
     t.gun = (this.flags & OUT.GUN) !== 0 || u.forceGun === true;
     // On easier difficulties a pilot often holds fire even with a missile shot.

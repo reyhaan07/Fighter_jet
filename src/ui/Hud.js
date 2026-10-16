@@ -604,12 +604,17 @@ export class Hud {
       y2 += 30 * k;
     }
     const pc = s.controller;
+    const p0 = s.player;
     if (pc?.gloc > 0) {
       this.text('G-LOC', cx, y2, 26 * k, COL.danger, 'center', 600, 'ui');
       y2 += 30 * k;
     } else if (pc?.gStress > 1.2) {
       this.text('G-LOAD  EASE THE STICK', cx, y2, 20 * k, COL.warn, 'center', 600, 'ui');
       y2 += 26 * k;
+    }
+    if (w.six && !(p0.flight.flip > 0) && !(pc?.flipCd > 0)) {
+      this.text(this.touch ? 'BANDIT ON YOUR SIX · TAP 180' : 'BANDIT ON YOUR SIX · PRESS E TO TURN', cx, y2, 18 * k, COL.warn, 'center', 600, 'ui');
+      y2 += 24 * k;
     }
     if (w.stall) {
       this.text('STALL', cx, y2, 22 * k, COL.warn, 'center', 600, 'ui');

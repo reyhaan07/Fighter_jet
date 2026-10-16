@@ -57,6 +57,7 @@ Every binding can be changed in **Settings → Controls**: click a binding and p
 | Rudder (yaw) | **A / D** |
 | Throttle up / down | **Mouse wheel** (5 % per notch) / **W / S** |
 | Afterburner | Scroll up once more at 100 % (scroll down to cancel), or hold **Shift** |
+| Quick turn (180° flip, 4 s recharge) | **E** (phone: **180°** button) |
 | Airbrake (hold) | **B** |
 | Aim | **Mouse** (in mouse-aim mode the jet flies toward the aim circle) |
 | Fire gun | **Left mouse** / Space |

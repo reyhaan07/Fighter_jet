@@ -314,7 +314,7 @@ export class Menus {
         body = `
         ${toggle('autoLevel', 'Auto-level', 'Levels your wings by itself when you let go of the stick. Recommended.')}
         ${toggle('invertY', 'Flip up and down', 'Off: drag up to climb. On: drag down to climb, like pulling back on a real stick.')}
-        <p class="muted small"><b>Touch controls:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge is the throttle; slide into the orange <b>AB</b> zone at the top for afterburner. Hold <b>GUN</b> to fire the cannon. Tap the blue weapon button to fire the selected weapon (missiles lock on by themselves when a target is in front of you). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
+        <p class="muted small"><b>Touch controls:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge is the throttle; slide into the orange <b>AB</b> zone at the top for afterburner. Hold <b>GUN</b> to fire the cannon. Tap the blue weapon button to fire the selected weapon (missiles lock on by themselves when a target is in front of you). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>180°</b> flips you round when an enemy is behind, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
         <div class="actions"><button data-act="showKeys">Keyboard &amp; gamepad bindings</button></div>`;
       } else body = `
         ${toggle('mouseAim', 'Steer with the mouse', 'On (easiest): move the mouse and the jet flies where you point. Off: fly only with the arrow keys or a gamepad.')}
@@ -422,6 +422,7 @@ export class Menus {
         ['Flares', 'Hold FLR'],
         ['Chaff / ECM / shield', 'DEF'],
         ['Next target', 'TGT'],
+        ['Quick turn (180°)', '180° (glows when an enemy is behind you)'],
         ['Camera view', 'CAM'],
         ['Wingman orders', 'WING (attack → cover → regroup)'],
         ['Pause', 'II (top right) or the Back button'],

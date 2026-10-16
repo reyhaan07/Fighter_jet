@@ -17,8 +17,8 @@ export const A = {
 };
 export const ROLE = { FIGHTER: 0, BOMBER: 1, DRONE: 2, WINGMAN: 3, PLAYER: 4, HELI: 5 };
 export const FLAG = { ALIVE: 1, GUN: 2, MISSILE: 4, PLAYER: 8, FLARES: 16 };
-export const OUT = { GUN: 1, MISSILE: 2, FLARES: 4, AB: 8, BRAKE: 16 };
-export const MODE = { PATROL: 0, PURSUE: 1, EVADE: 2, FLANK: 3, DEFEND: 4, EXTEND: 5, FORMATION: 6, PATH: 7, ORBIT: 8 };
+export const OUT = { GUN: 1, MISSILE: 2, FLARES: 4, AB: 8, BRAKE: 16, BOOST: 32 };
+export const MODE = { PATROL: 0, PURSUE: 1, EVADE: 2, FLANK: 3, DEFEND: 4, EXTEND: 5, FORMATION: 6, PATH: 7, ORBIT: 8, JOUST: 9 };
 export const CMD = { COVER: 0, ATTACK: 1, REGROUP: 2 };
 
 const BULLET_SPEED = 950;
@@ -273,8 +273,15 @@ function thinkOne(air, n, mis, i, out, r, time, dt, mapHalf) {
   // Tactical mode changes.
   if (mode === MODE.PATROL || mode === MODE.FORMATION || mode === MODE.PATH || mode === MODE.ORBIT) mode = MODE.PURSUE;
   if (timer <= 0) {
-    if (mode === MODE.FLANK || mode === MODE.DEFEND || mode === MODE.EXTEND) mode = MODE.PURSUE;
-    if (mode === MODE.PURSUE) {
+    if (mode === MODE.FLANK || mode === MODE.DEFEND || mode === MODE.EXTEND || mode === MODE.JOUST) mode = MODE.PURSUE;
+    // Sitting on the player's tail: after a few seconds (sooner on easy) break
+    // off, race past and come back for a head-on pass, so fights happen in
+    // front of the player instead of behind them.
+    const onPlayersSix = (air[q + A.FLAGS] & FLAG.PLAYER) && threatening < -0.35 && dist < 3500;
+    if (mode === MODE.PURSUE && onPlayersSix && hash(time * 1.7 + id) < 0.42 - skill * 0.3) {
+      mode = MODE.JOUST;
+      timer = 16;
+    } else if (mode === MODE.PURSUE) {
       if (dist < 1300 && facing < -0.3 && threatening > 0.85 && hash(time + id) < 0.3 + skill * 0.6) {
         mode = MODE.DEFEND; // bandit on my six
         timer = 2.5 + skill * 2;
@@ -286,6 +293,20 @@ function thinkOne(air, n, mis, i, out, r, time, dt, mapHalf) {
         timer = 3;
       } else timer = 1;
     }
+  }
+
+  if (mode === MODE.JOUST) {
+    // Swing out past the player to a point ahead of them, then turn in.
+    const side = hash(id * 3.1) < 0.5 ? 1 : -1;
+    const ax = tx + tfx * 2200 - tfz * side * 1100;
+    const az = tz + tfz * 2200 + tfx * side * 1100;
+    setDir(ax - px, (ty + 120 - py) * 0.5, az - pz);
+    throttle = 1;
+    flags |= OUT.AB | OUT.BOOST;
+    // Out in front of the player and far enough to turn around: attack head-on.
+    if (threatening > 0.55 && dist > 1400) timer = 0;
+    finish(air, o, out, r, throttle, flags, targetId, mode, timer, speed, py, mapHalf, px, pz);
+    return;
   }
 
   if (mode === MODE.DEFEND) {
