@@ -1,9 +1,17 @@
 import { buzz } from '../core/Platform.js';
 
-// On-screen controls for phones and tablets (landscape):
+// On-screen controls for phones and tablets (landscape). Two layouts
+// (Settings → Controls → Touch layout):
 //
+// Two sticks (default, like the Sky Gamblers games):
+//   left stick    up/down = speed (push all the way up for afterburner; let go
+//                 and the speed stays), left/right = rudder (turn the nose)
+//   right stick   up/down = nose up/down, left/right = roll
+//   gun           fires by itself when a target is in the gunsight (optional)
+// One stick:
 //   left edge     throttle slider; the top notch past 100 % is the afterburner
-//   left half     floating flight stick: touch anywhere, drag to pitch and roll
+//   left half     floating flight stick: drag to pitch and roll
+// Both:
 //   right side    GUN (hold), selected weapon (missiles lock on by themselves),
 //                 180° quick turn,
 //                 next weapon, flares, defence, next target
@@ -48,7 +56,8 @@ export class TouchControls {
     this.input = game.input;
     this.visible = false;
     this.wingIndex = 0;
-    this.stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
+    this.sticks = [];
+    this.layout = null;
     this.throttleId = -1;
     this._labels = {};
 
@@ -56,17 +65,16 @@ export class TouchControls {
     root.id = 'touch';
     root.hidden = true;
     root.innerHTML = `
-      <div class="t-zone"></div>
-      <div class="t-stick"><div class="t-knob"></div></div>
+      <div class="t-zone t-zone-l"></div>
+      <div class="t-zone t-zone-r"></div>
+      <div class="t-stick t-stick-l"><div class="t-knob"></div><i class="t-cap"></i></div>
+      <div class="t-stick t-stick-r"><div class="t-knob"></div><i class="t-cap"></i></div>
       <div class="t-throttle">
         <div class="t-track"><div class="t-ab">AB</div><div class="t-fill"></div><div class="t-handle"></div></div>
         <div class="t-pct">70%</div>
       </div>
       ${BUTTONS.map(([id, , , label, cls]) => `<div class="t-btn ${cls}" data-id="${id}"><b>${label}</b><small></small></div>`).join('')}`;
     document.body.appendChild(root);
-    this.zone = root.querySelector('.t-zone');
-    this.stickEl = root.querySelector('.t-stick');
-    this.knob = root.querySelector('.t-knob');
     this.track = root.querySelector('.t-track');
     this.fill = root.querySelector('.t-fill');
     this.handle = root.querySelector('.t-handle');
@@ -75,28 +83,29 @@ export class TouchControls {
     for (const el of root.querySelectorAll('.t-btn')) this.btn[el.dataset.id] = { el, small: el.querySelector('small'), b: el.querySelector('b') };
 
     root.addEventListener('contextmenu', (e) => e.preventDefault());
-    this._bindStick();
+    this.left = this._makeStick(root.querySelector('.t-zone-l'), root.querySelector('.t-stick-l'), 'left');
+    this.right = this._makeStick(root.querySelector('.t-zone-r'), root.querySelector('.t-stick-r'), 'right');
     this._bindThrottle();
     this._bindButtons();
   }
 
-  // ── Flight stick ─────────────────────────────────────────────────────
-  _bindStick() {
-    const st = this.stick;
-    const z = this.zone;
-    z.addEventListener('pointerdown', (e) => {
+  // ── Sticks ───────────────────────────────────────────────────────────
+  _makeStick(zone, el, side) {
+    const st = { id: -1, ox: 0, oy: 0, x: 0, y: 0, zone, el, knob: el.querySelector('.t-knob'), cap: el.querySelector('.t-cap'), side };
+    const place = () => (el.style.transform = `translate(${st.ox}px, ${st.oy}px)`);
+    zone.addEventListener('pointerdown', (e) => {
       if (st.id >= 0) return;
       e.preventDefault();
       st.id = e.pointerId;
       st.ox = e.clientX;
       st.oy = e.clientY;
       st.x = st.y = 0;
-      z.setPointerCapture(e.pointerId);
-      this.stickEl.classList.add('on');
-      this.stickEl.style.transform = `translate(${st.ox}px, ${st.oy}px)`;
-      this._applyStick();
+      zone.setPointerCapture(e.pointerId);
+      el.classList.add('on');
+      place();
+      this._apply(st);
     });
-    z.addEventListener('pointermove', (e) => {
+    zone.addEventListener('pointermove', (e) => {
       if (e.pointerId !== st.id) return;
       let dx = (e.clientX - st.ox) / STICK_RADIUS;
       let dy = (e.clientY - st.oy) / STICK_RADIUS;
@@ -107,40 +116,80 @@ export class TouchControls {
         st.oy += (dy / len) * (len - 1) * STICK_RADIUS;
         dx /= len;
         dy /= len;
-        this.stickEl.style.transform = `translate(${st.ox}px, ${st.oy}px)`;
+        place();
       }
       st.x = dx;
       st.y = dy;
-      this._applyStick();
+      this._apply(st);
     });
     const end = (e) => {
       if (e.pointerId !== st.id) return;
       st.id = -1;
       st.x = st.y = 0;
-      this.stickEl.classList.remove('on');
-      this._restStick();
-      this._applyStick();
+      el.classList.remove('on');
+      this._rest(st);
+      this._apply(st);
     };
-    z.addEventListener('pointerup', end);
-    z.addEventListener('pointercancel', end);
+    zone.addEventListener('pointerup', end);
+    zone.addEventListener('pointercancel', end);
+    this.sticks.push(st);
+    return st;
   }
 
-  _applyStick() {
-    const st = this.stick;
+  /** What a stick does depends on the layout and which side it is on. */
+  _apply(st) {
     const t = this.input.touch;
-    const invert = this.game.settings.invertY ? -1 : 1;
+    const two = this.layout === 'two';
     const px = shape(st.x);
-    const py = shape(-st.y) * invert; // drag up = nose up
+    const py = shape(-st.y); // up = positive
+    st.knob.style.transform = `translate(${st.x * STICK_RADIUS}px, ${st.y * STICK_RADIUS}px)`;
+    if (two && st.side === 'left') {
+      // Speed and rudder.
+      t.throttleUp = py > 0 ? py : 0;
+      t.throttleDown = py < 0 ? -py : 0;
+      const ab = -st.y > 0.9;
+      if (ab !== !!t.afterburner) buzz(ab ? 18 : 8);
+      t.afterburner = ab ? 1 : 0;
+      t.yawLeft = px < 0 ? -px : 0;
+      t.yawRight = px > 0 ? px : 0;
+      return;
+    }
+    // Pitch and roll (right stick in two-stick mode, the only stick otherwise).
+    const p = py * (this.game.settings.invertY ? -1 : 1);
     t.rollLeft = px < 0 ? -px : 0;
     t.rollRight = px > 0 ? px : 0;
-    t.pitchUp = py > 0 ? py : 0;
-    t.pitchDown = py < 0 ? -py : 0;
-    this.knob.style.transform = `translate(${st.x * STICK_RADIUS}px, ${st.y * STICK_RADIUS}px)`;
+    t.pitchUp = p > 0 ? p : 0;
+    t.pitchDown = p < 0 ? -p : 0;
   }
 
-  _restStick() {
+  _rest(st) {
+    const w = window.innerWidth;
     const h = window.innerHeight;
-    this.stickEl.style.transform = `translate(${Math.round(window.innerWidth * 0.2 + 30)}px, ${Math.round(h - Math.min(130, h * 0.3))}px)`;
+    if (st.side === 'left') {
+      st.ox = Math.round(w * (this.layout === 'two' ? 0.17 : 0.2) + (this.layout === 'two' ? 20 : 30));
+      st.oy = Math.round(h - Math.min(130, h * 0.3));
+    } else {
+      st.ox = Math.round(w * 0.6);
+      st.oy = Math.round(h * 0.6);
+    }
+    st.el.style.transform = `translate(${st.ox}px, ${st.oy}px)`;
+  }
+
+  /** Switch between the one-stick and two-stick layouts. */
+  _setLayout(layout) {
+    this.layout = layout;
+    const two = layout === 'two';
+    this.root.classList.toggle('two', two);
+    this.right.zone.hidden = this.right.el.hidden = !two;
+    this.left.cap.textContent = two ? 'SPEED · RUDDER' : '';
+    this.right.cap.textContent = two ? 'FLY' : '';
+    this.input.clearTouch();
+    for (const st of this.sticks) {
+      st.id = -1;
+      st.x = st.y = 0;
+      st.el.classList.remove('on');
+      this._rest(st);
+    }
   }
 
   // ── Throttle ─────────────────────────────────────────────────────────
@@ -228,23 +277,27 @@ export class TouchControls {
     this.root.hidden = !v;
     if (!v) {
       this.input.clearTouch();
-      this.stick.id = -1;
-      this.stick.x = this.stick.y = 0;
+      for (const st of this.sticks) {
+        st.id = -1;
+        st.x = st.y = 0;
+        st.el.classList.remove('on');
+      }
       this.throttleId = -1;
-      this.stickEl.classList.remove('on');
       for (const b of Object.values(this.btn)) b.el.classList.remove('down');
-    } else this._restStick();
+    } else for (const st of this.sticks) this._rest(st);
   }
 
   update(session) {
     const g = this.game;
     const show = !!session && !g.paused && !g.loading && !session.ended && !!session.player?.alive && !session.cinematic;
+    const layout = g.settings.touchLayout === 'one' ? 'one' : 'two';
+    if (layout !== this.layout) this._setLayout(layout);
     this.setVisible(show);
     if (!show) return;
     const p = session.player;
     const f = p.flight;
     // Throttle display follows the real setting (keyboard, respawn, ...).
-    const ab = session.controller?.abDetent;
+    const ab = session.controller?.abDetent || f.controls.ab;
     const frac = ab ? 1 : Math.min(1, f.throttleTarget) * 0.86;
     const fy = Math.round(frac * 1000) / 1000;
     if (fy !== this._fy || ab !== this._ab) {
@@ -275,7 +328,7 @@ export class TouchControls {
     const cd = session.controller?.flipCd > 0 || f.flip > 0;
     this.btn.flip.el.classList.toggle('t-ready', !!session.warnings?.six && !cd);
     this.btn.flip.el.classList.toggle('t-cool', cd);
-        const hasWing = session.wingmen?.some((w) => w.alive);
+    const hasWing = session.wingmen?.some((w) => w.alive);
     this.btn.wing.el.hidden = !hasWing;
     if (!this._labels.wingsmall) this._set('wing', 'small', WING_ORDERS[this.wingIndex][1]);
   }

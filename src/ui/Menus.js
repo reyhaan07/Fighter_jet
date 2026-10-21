@@ -311,10 +311,19 @@ export class Menus {
         }).join(''))
         .join('');
       if (IS_TOUCH && !this.showKeys) {
+        const two = st.touchLayout !== 'one';
         body = `
+        <div class="opt"><div class="row"><label>Touch layout</label><div class="seg">
+          <button data-act="touchLayout" data-id="two" class="${two ? 'on' : ''}">Two sticks</button>
+          <button data-act="touchLayout" data-id="one" class="${two ? '' : 'on'}">One stick</button>
+        </div></div>
+        <p class="hint">${two
+          ? '<b>Two sticks</b> (like the Sky Gamblers games): <b>left stick</b> up = faster (all the way up = afterburner), down = slower, left/right = rudder (turns the nose). Let go and the speed stays. <b>Right stick</b> flies the jet: up/down = nose up/down, left/right = roll.'
+          : '<b>One stick:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge sets the speed; slide into the orange AB zone for afterburner.'}</p></div>
+        ${toggle('autoFire', 'Auto-fire gun', 'The cannon fires by itself while your target is lined up in the gunsight, so your thumbs can stay on the sticks. You can still hold GUN.')}
         ${toggle('autoLevel', 'Auto-level', 'Levels your wings by itself when you let go of the stick. Recommended.')}
-        ${toggle('invertY', 'Flip up and down', 'Off: drag up to climb. On: drag down to climb, like pulling back on a real stick.')}
-        <p class="muted small"><b>Touch controls:</b> drag anywhere on the left half to fly (up = climb, sideways = roll). The slider on the left edge is the throttle; slide into the orange <b>AB</b> zone at the top for afterburner. Hold <b>GUN</b> to fire the cannon. Tap the blue weapon button to fire the selected weapon (missiles lock on by themselves when a target is in front of you). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>180°</b> flips you round when an enemy is behind, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
+        ${toggle('invertY', 'Flip up and down', 'Off: push the flying stick up to climb. On: pull it down to climb, like a real stick.')}
+        <p class="muted small">Buttons: tap the blue weapon button to fire the selected weapon (missiles lock on by themselves). <b>WPN</b> switches weapons, <b>FLR</b> drops flares, <b>DEF</b> fires chaff/ECM/shield, <b>TGT</b> picks the next target, <b>180°</b> flips you round when an enemy is behind, <b>CAM</b> changes the view, <b>WING</b> orders your wingmen. A game controller also works.</p>
         <div class="actions"><button data-act="showKeys">Keyboard &amp; gamepad bindings</button></div>`;
       } else body = `
         ${toggle('mouseAim', 'Steer with the mouse', 'On (easiest): move the mouse and the jet flies where you point. Off: fly only with the arrow keys or a gamepad.')}
@@ -413,10 +422,19 @@ export class Menus {
     const p = (id) => (b[id] || []).filter((c) => c.startsWith('Pad:')).map(describeCode).join(' / ') || '—';
     const rows = ACTIONS.map(([id, label]) => `<tr><td>${esc(label)}</td><td>${esc(k(id))}</td><td>${esc(p(id))}</td></tr>`).join('');
     if (IS_TOUCH) {
+      const two = this.game.settings.touchLayout !== 'one';
       const t = [
-        ['Fly (pitch and roll)', 'Drag anywhere on the left half of the screen: up climbs, down dives, sideways rolls'],
-        ['Throttle', 'Slider on the left edge; slide into the orange AB zone at the top for afterburner'],
-        ['Fire gun', 'Hold GUN (red)'],
+        ...(two
+          ? [
+              ['Speed', 'Left stick up / down (all the way up = afterburner); let go and the speed stays'],
+              ['Rudder (turn the nose)', 'Left stick left / right'],
+              ['Fly (pitch and roll)', 'Right stick: up climbs, down dives, sideways rolls'],
+            ]
+          : [
+              ['Fly (pitch and roll)', 'Drag anywhere on the left half of the screen: up climbs, down dives, sideways rolls'],
+              ['Throttle', 'Slider on the left edge; slide into the orange AB zone at the top for afterburner'],
+            ]),
+        ['Fire gun', this.game.settings.autoFire !== false ? 'Fires by itself when the target is in the gunsight, or hold GUN (red)' : 'Hold GUN (red)'],
         ['Fire selected weapon', 'Tap the blue button (missiles lock on by themselves)'],
         ['Next weapon', 'WPN'],
         ['Flares', 'Hold FLR'],
@@ -669,6 +687,11 @@ export class Menus {
         });
         break;
       }
+      case 'touchLayout':
+        g.settings.touchLayout = id;
+        g.persist();
+        this.render();
+        break;
       case 'showKeys':
         this.showKeys = true;
         this.render();

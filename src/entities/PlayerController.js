@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { steerToward } from './FlightModel.js';
 import { clamp } from '../core/math.js';
+import { IS_TOUCH } from '../core/Platform.js';
 
 // Turns player input into flight controls and weapon triggers.
 //
@@ -212,5 +213,19 @@ export class PlayerController {
     const gimbal = 0.07;
     if (cos > Math.cos(gimbal)) u.gunDir.copy(aim);
     else u.gunDir.copy(_fwd).lerp(aim, Math.min(1, gimbal / Math.acos(clamp(cos, -1, 1)))).normalize();
+
+    // Phones: with both thumbs on the sticks, the gun fires by itself while
+    // the selected target (air or ground) sits in the gunsight.
+    const st = this.settings;
+    const cannon = u.loadout?.gun;
+    if (IS_TOUCH && st.autoFire !== false && tg && tg.alive && cannon?.def.speed && !(u.flight.flip > 0)) {
+      const dist = tg.pos.distanceTo(u.pos);
+      if (dist < Math.min(cannon.def.range ?? 1600, 1700)) {
+        const tt = dist / cannon.def.speed;
+        _lead.copy(tg.pos).addScaledVector(tg.vel, tt).addScaledVector(u.vel, -tt).sub(u.pos).normalize();
+        const tol = Math.atan2(tg.radius * 1.1, dist) + 0.01;
+        if (_lead.dot(u.gunDir) > Math.cos(tol)) u.trigger.gun = true;
+      }
+    }
   }
 }

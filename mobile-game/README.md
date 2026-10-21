@@ -19,11 +19,16 @@ unlocked levels).
 
 ## Controls
 
+Two on-screen sticks by default (the layout of the Sky Gamblers games); a
+one-stick layout with a throttle slider is under Settings → Controls.
+
 | Control | How |
 |---|---|
-| Fly | Drag anywhere on the left half: up climbs, down dives, sideways rolls (auto-level keeps the wings level when you let go) |
-| Throttle | Slider on the left edge; slide into the orange **AB** zone at the top for afterburner |
-| Gun | Hold **GUN** (red) |
+| Speed | **Left stick** up / down (all the way up = afterburner). Let go and the speed stays |
+| Rudder (turn the nose) | **Left stick** left / right |
+| Fly | **Right stick**: up climbs, down dives, sideways rolls (auto-level keeps the wings level when you let go) |
+| Gun | Fires by itself when your target is in the gunsight (Auto-fire, can be turned off), or hold **GUN** (red) |
+| Quick turn | **180°** button (glows when an enemy is behind you) |
 | Selected weapon | Tap the blue button (missiles lock on by themselves) |
 | Next weapon / flares / defence / next target | **WPN** / **FLR** / **DEF** / **TGT** |
 | Camera, wingmen, pause | **CAM**, **WING**, **II** (or the phone's Back button) |

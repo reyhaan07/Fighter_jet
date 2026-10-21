@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS = {
   mouseSensitivity: 1,
   invertY: false,
   mouseAim: true,
+  touchLayout: 'two', // phones: 'two' sticks (speed/rudder + fly) or 'one' stick + throttle slider
+  autoFire: true, // phones: the gun fires by itself when a target is in the gunsight
   autoLevel: true,
   damageNumbers: true,
   killCam: true,

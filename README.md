@@ -182,7 +182,7 @@ The ZIP is rebuilt on GitHub after every change (`.github/workflows/windows-zip.
 
 ## Android app (phones)
 
-`mobile-game/` packages the same game as an Android app with touch controls, a throttle slider and phone graphics settings. Download **StrikeWing.apk** on your phone from the [latest release](https://github.com/reyhaan07/Fighter_jet/releases/latest) and open it to install. See [mobile-game/README.md](mobile-game/README.md) for controls and how the APK is built. The web version also shows the touch controls when opened on a phone or tablet.
+`mobile-game/` packages the same game as an Android app with two on-screen sticks (left: speed and rudder, right: fly; one-stick layout optional), auto-fire for the gun and phone graphics settings. Download **StrikeWing.apk** on your phone from the [latest release](https://github.com/reyhaan07/Fighter_jet/releases/latest) and open it to install. See [mobile-game/README.md](mobile-game/README.md) for controls and how the APK is built. The web version also shows the touch controls when opened on a phone or tablet.
 
 ## Performance
 
