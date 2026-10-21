@@ -1,4 +1,8 @@
 :root {
+  /* Notch / rounded-corner clearance: the browser's safe area, or the notch
+     size the Android app reports (--cut-*) when the game runs edge to edge. */
+  --sal: max(env(safe-area-inset-left, 0px), var(--cut-l, 0px));
+  --sar: max(env(safe-area-inset-right, 0px), var(--cut-r, 0px));
   --hud: #8dffb5;
   --hud-dim: rgba(141, 255, 181, 0.55);
   --warn: #ffcf5a;
@@ -242,7 +246,7 @@ table.help td { font-size: 13px; }
 .t-zone-r { left: 50vw; right: 0; width: auto; top: calc(170px * var(--u)); }
 /* Two-stick layout: the left stick zone reaches the edge and the throttle bar
    becomes a read-only gauge (speed is set with the left stick). */
-#touch.two .t-zone-l { left: max(8px, env(safe-area-inset-left)); width: 46vw; }
+#touch.two .t-zone-l { left: max(8px, var(--sal)); width: 46vw; }
 #touch.two .t-throttle { pointer-events: none; opacity: 0.7; width: calc(40px * var(--u)); }
 #touch.two .t-track { width: calc(14px * var(--u)); }
 #touch.two .t-ab { font-size: 0; }
@@ -251,7 +255,7 @@ table.help td { font-size: 13px; }
 .t-stick { position: absolute; left: 0; top: 0; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; border: 2px solid rgba(141, 255, 181, 0.22); background: radial-gradient(circle, rgba(141, 255, 181, 0.05), rgba(141, 255, 181, 0.1)); opacity: 0.45; transition: opacity 0.15s; pointer-events: none; }
 .t-stick.on { opacity: 1; transition: none; }
 .t-knob { position: absolute; left: 38px; top: 38px; width: 48px; height: 48px; border-radius: 50%; background: rgba(141, 255, 181, 0.35); border: 2px solid rgba(141, 255, 181, 0.75); box-shadow: 0 0 14px rgba(141, 255, 181, 0.3); }
-.t-throttle { position: absolute; left: max(8px, env(safe-area-inset-left)); top: 24vh; bottom: 7vh; width: calc(64px * var(--u)); pointer-events: auto; display: flex; flex-direction: column; align-items: center; }
+.t-throttle { position: absolute; left: max(8px, var(--sal)); top: 24vh; bottom: 7vh; width: calc(64px * var(--u)); pointer-events: auto; display: flex; flex-direction: column; align-items: center; }
 .t-track { position: relative; flex: 1; width: calc(26px * var(--u)); border-radius: 13px; background: rgba(8, 14, 20, 0.45); border: 1.5px solid rgba(141, 255, 181, 0.35); overflow: hidden; }
 .t-ab { position: absolute; left: 0; right: 0; top: 0; height: 12%; display: grid; place-items: center; font: 600 calc(10px * var(--u)) var(--font-mono); color: rgba(255, 179, 90, 0.8); background: rgba(255, 140, 40, 0.14); border-bottom: 1px dashed rgba(255, 179, 90, 0.6); }
 .t-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; transform-origin: bottom; transform: scaleY(0.6); background: linear-gradient(0deg, rgba(141, 255, 181, 0.45), rgba(141, 255, 181, 0.18)); }
@@ -264,21 +268,21 @@ table.help td { font-size: 13px; }
 .t-btn b { font-weight: 600; font-size: calc(13px * var(--u)); letter-spacing: 0.06em; }
 .t-btn small { font: 500 calc(10px * var(--u)) var(--font-mono); opacity: 0.8; margin-top: 2px; }
 .t-btn.down { transform: scale(0.92); background: rgba(141, 255, 181, 0.32); }
-.t-gun { width: calc(104px * var(--u)); height: calc(104px * var(--u)); right: calc(26px * var(--u) + env(safe-area-inset-right)); bottom: calc(24px * var(--u)); border-color: rgba(255, 110, 90, 0.75); background: rgba(40, 8, 6, 0.4); }
+.t-gun { width: calc(104px * var(--u)); height: calc(104px * var(--u)); right: calc(26px * var(--u) + var(--sar)); bottom: calc(24px * var(--u)); border-color: rgba(255, 110, 90, 0.75); background: rgba(40, 8, 6, 0.4); }
 .t-gun b { font-size: calc(18px * var(--u)); }
 .t-gun.down { background: rgba(255, 90, 70, 0.4); }
-.t-msl { width: calc(80px * var(--u)); height: calc(80px * var(--u)); right: calc(146px * var(--u) + env(safe-area-inset-right)); bottom: calc(16px * var(--u)); border-color: rgba(111, 195, 255, 0.75); background: rgba(6, 18, 34, 0.4); }
+.t-msl { width: calc(80px * var(--u)); height: calc(80px * var(--u)); right: calc(146px * var(--u) + var(--sar)); bottom: calc(16px * var(--u)); border-color: rgba(111, 195, 255, 0.75); background: rgba(6, 18, 34, 0.4); }
 .t-msl b { font-size: calc(11px * var(--u)); }
 .t-msl.down { background: rgba(111, 195, 255, 0.38); }
-.t-flr { width: calc(58px * var(--u)); height: calc(58px * var(--u)); right: calc(30px * var(--u) + env(safe-area-inset-right)); bottom: calc(144px * var(--u)); border-color: rgba(255, 207, 90, 0.7); }
-.t-wpn { width: calc(56px * var(--u)); height: calc(56px * var(--u)); right: calc(122px * var(--u) + env(safe-area-inset-right)); bottom: calc(112px * var(--u)); }
-.t-def { width: calc(50px * var(--u)); height: calc(50px * var(--u)); right: calc(306px * var(--u) + env(safe-area-inset-right)); bottom: calc(24px * var(--u)); }
-.t-tgt { width: calc(54px * var(--u)); height: calc(54px * var(--u)); right: calc(240px * var(--u) + env(safe-area-inset-right)); bottom: calc(22px * var(--u)); }
+.t-flr { width: calc(58px * var(--u)); height: calc(58px * var(--u)); right: calc(30px * var(--u) + var(--sar)); bottom: calc(144px * var(--u)); border-color: rgba(255, 207, 90, 0.7); }
+.t-wpn { width: calc(56px * var(--u)); height: calc(56px * var(--u)); right: calc(122px * var(--u) + var(--sar)); bottom: calc(112px * var(--u)); }
+.t-def { width: calc(50px * var(--u)); height: calc(50px * var(--u)); right: calc(306px * var(--u) + var(--sar)); bottom: calc(24px * var(--u)); }
+.t-tgt { width: calc(54px * var(--u)); height: calc(54px * var(--u)); right: calc(240px * var(--u) + var(--sar)); bottom: calc(22px * var(--u)); }
 .t-pause, .t-cam, .t-wing { width: calc(44px * var(--u)); height: calc(44px * var(--u)); top: calc(10px * var(--u)); }
-.t-pause { right: calc(12px * var(--u) + env(safe-area-inset-right)); }
+.t-pause { right: calc(12px * var(--u) + var(--sar)); }
 .t-pause b { font-size: calc(15px * var(--u)); letter-spacing: 0; }
-.t-cam { right: calc(64px * var(--u) + env(safe-area-inset-right)); }
-.t-wing { right: calc(116px * var(--u) + env(safe-area-inset-right)); width: calc(58px * var(--u)); border-radius: 22px; }
+.t-cam { right: calc(64px * var(--u) + var(--sar)); }
+.t-wing { right: calc(116px * var(--u) + var(--sar)); width: calc(58px * var(--u)); border-radius: 22px; }
 .t-cam b, .t-wing b { font-size: calc(11px * var(--u)); }
 .t-wing small { font-size: calc(8px * var(--u)); }
 
@@ -336,8 +340,20 @@ table.help td { font-size: 13px; }
 .hint b { color: #c9d4df; font-weight: 600; }
 @media (max-height: 560px) { .opt { margin: 2px 0 6px; } .hint { font-size: 12px; } }
 
-.t-flip { width: calc(52px * var(--u)); height: calc(52px * var(--u)); left: calc(76px * var(--u) + env(safe-area-inset-left)); top: 52vh; border-color: rgba(255, 207, 90, 0.55); }
+.t-flip { width: calc(52px * var(--u)); height: calc(52px * var(--u)); left: calc(76px * var(--u) + var(--sal)); top: 52vh; border-color: rgba(255, 207, 90, 0.55); }
 .t-flip b { font-size: calc(14px * var(--u)); }
 .t-flip.t-ready { border-color: #ffcf5a; box-shadow: 0 0 16px rgba(255, 207, 90, 0.7); background: rgba(60, 44, 8, 0.5); }
 .t-flip.t-cool { opacity: 0.45; }
 .t-stick-r:not(.on) { opacity: 0.28; }
+
+/* Keep menus clear of a camera notch when the app runs edge to edge. */
+.panel-layout { padding-left: max(32px, calc(var(--sal) + 12px)); padding-right: max(32px, calc(var(--sar) + 12px)); }
+.map-head { padding-left: max(24px, calc(var(--sal) + 10px)); padding-right: max(24px, calc(var(--sar) + 10px)); }
+.map-brief { right: max(20px, calc(var(--sar) + 8px)); }
+.main-menu { padding-left: max(7vw, calc(var(--sal) + 16px)); }
+@media (max-height: 560px) {
+  .panel-layout { padding-left: max(14px, calc(var(--sal) + 8px)); padding-right: max(14px, calc(var(--sar) + 8px)); }
+  .map-head { padding-left: max(12px, calc(var(--sal) + 8px)); padding-right: max(12px, calc(var(--sar) + 8px)); }
+  .map-brief { right: max(8px, calc(var(--sar) + 8px)); }
+  .main-menu { padding-left: max(6vw, calc(var(--sal) + 12px)); }
+}

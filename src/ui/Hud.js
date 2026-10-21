@@ -52,6 +52,10 @@ export class Hud {
   }
 
   resize() {
+    // Notch clearance (phones running edge to edge), in CSS px.
+    const cs = getComputedStyle(document.documentElement);
+    this.padL = parseFloat(cs.getPropertyValue('--cut-l')) || 0;
+    this.padR = parseFloat(cs.getPropertyValue('--cut-r')) || 0;
     this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     this.w = window.innerWidth;
     this.h = window.innerHeight;
@@ -669,7 +673,7 @@ export class Hud {
   drawStatus(s, k) {
     const g = this.g;
     const p = s.player;
-    const x = this.touch ? 96 * k : 24 * k;
+    const x = this.touch ? 96 * k + (this.padL || 0) : 24 * k;
     const y = this.touch ? 30 * k : this.h - 260 * k;
     const w = (this.touch ? 140 : 190) * k;
     const hpf = p.hp / p.maxHp;
@@ -704,7 +708,7 @@ export class Hud {
     const g = this.g;
     const p = s.player;
     const R = (this.touch ? 62 : 92) * k;
-    const cx = this.touch ? this.w - 16 * k - R : 24 * k + R;
+    const cx = this.touch ? this.w - 16 * k - R - (this.padR || 0) : 24 * k + R;
     const cy = this.touch ? 64 * k + R : this.h - 24 * k - R;
     g.fillStyle = 'rgba(0,14,8,0.45)';
     g.beginPath();
@@ -809,7 +813,7 @@ export class Hud {
     }
     for (const f of this.feed) {
       this.g.globalAlpha = Math.min(1, f.t);
-      this.text(f.text, this.w - (this.touch ? 170 : 24) * k, fy + (this.touch ? 52 * k : 0), 13 * k, COL.hud, 'right', 600, 'ui');
+      this.text(f.text, this.w - (this.touch ? 170 * k + (this.padR || 0) : 24 * k), fy + (this.touch ? 52 * k : 0), 13 * k, COL.hud, 'right', 600, 'ui');
       fy += 18 * k;
     }
     this.g.globalAlpha = 1;
